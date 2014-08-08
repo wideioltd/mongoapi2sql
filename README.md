@@ -33,76 +33,87 @@ db.connect("db", "hostname", "user", "password", options)
 
 ### basic usage
 
+test = db.test # test = db["test"] works fine too
+
 ```python
 db.collection_names()
---> ["collection1", "collection2", ...]
-
-
-test = db.test || test = db["test"]
-print test.find()
---> []
-
-
-print test.insert( {"field": "string", "field2": 42} )
---> [1]
+1  --> []
 
 
 print test.find()
---> [ {"field": "string", "field2": 42} ]
+2  --> None
 
 
 print test.insert( [ {"a": 1}, {"b": 2}, {"a": 42, "b": 3}, {"a": 2, "b": 3}  ] )
---> [2, 3, 4, 5]
+3  --> [1, 2, 3, 4]
 
 
 print test.find({"a": 5})
---> None
+4  --> []
 
 
 print test.find({"b": 2})
---> [{"b": 2, "_id": 3}]
+5  --> [{'a': None, 'b': 2, '_id': 2}]
 
 
 print test.find({"a": {"$lt": 2}})
---> [{"a": 1, "_id": 2}]
+6  --> [{'a': 1, 'b': None, '_id': 1}]
 
 
 print test.find({"b":3})
---> [{"a": 42, "b": 3, "_id": 4 }, {"a": 2, "b": 3, "_id": 5} ]
+7  --> [{'a': 42, 'b': 3, '_id': 3}, {'a': 2, 'b': 3, '_id': 4}]
 
 
 print test.find({"b":3}).find({"a": 42})
---> [{"a": 42, "b": 3, "_id": 4}]
+8  --> [{'a': 42, 'b': 3, '_id': 3}]
 
 
 print test.find({"b":3}).find({"a": 42}).find({"a": 1})
---> None
+9  --> []
 
 
 print test.find({"b": 3}).sort("a")
---> [{"a": 2, "b": 3, "_id": 5}, {"a": 42, "b": 3, "_id": 4}]
+10 --> [{'a': 2, 'b': 3, '_id': 4}, {'a': 42, 'b': 3, '_id': 3}]
 
 
 print test.find({"b": 3}).sort("a", MongoSyntax.DESC_SORT)
---> [{"a": 42, "b": 3, "_id": 4}, {"a": 2, "b": 3, "_id": 5}]
+11 --> [{'a': 42, 'b': 3, '_id': 3}, {'a': 2, 'b': 3, '_id': 4}]
 
 
 print test.find({"b": 3}).count()
---> 2
+12--> 2
 
 
-test.find({"b": 3}).remove()
+print test.find({"b": 3}).remove()
+13 --> None
+
+
 print test.find({"b": 3}).count()
---> 1
+14 --> 1
 
 
 print test.count()
---> 4
+15 --> 3
 
 
-test.remove(limit=None)
+print test.remove(limit=None)
+16 -->
+
+
 print test.find()
---> []
+17 --> []
+
+
+print db.collection_names()
+18 --> [u"test"]
+
+
+print test.drop()
+19 --> None
+
+
+print db.collection_names()
+10 --> []
 ```
 
 how to implement your database
