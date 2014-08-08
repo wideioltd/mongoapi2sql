@@ -5,9 +5,6 @@ from uuid import uuid4 as uuid
 from mongo_basic import MongoBasic
 
 
-
-from decorators import display_call
-
 class MongoNuodb(MongoBasic):
     def __init__(self):
         self.db = None
@@ -27,44 +24,44 @@ class MongoNuodb(MongoBasic):
 
     def select(self, name, filters, limit):
         all = "select * from %s" % name
-        i = []
+        l = []
         for filter in filters:
             if filter != "":
                 l.append("%s where %s" % (all, filter))
             else:
                 l.append(all)
         res = " intersect ".join(l)
-        if res = "":
+        if res == "":
             res = all
         if limit is not None:
             res += " limit %s" % limit
-        self.c.execute(res)
-        t = self.c.fetchall()
-        d = []
+	try:
+	    self.c.execute(res)
+        except pynuodb.ProgrammingError:
+            return None
+        fetched = self.c.fetchall()
+        ids = []
         try:
-            l = len(t[0])
+            l = len(fetched[0])
         except IndexError:
             return None
-        for tp in t:
-            dic = {}
+        for item in fetched:
+            dict = {}
             for i in range(l):
-                 dic[self.c.description[i][0]] = tp[i]
-            d.append(dic)
-        return d
+                 dict[self.c.description[i][0]] = item[i]
+            ids.append(dict)
+        return ids
 
     def create_collection(self, name, fields):
-        if "_ID" in fields:
-            del fields["_ID"]
-        if "UUID" in fields:
-            del fields["UUID"]
+        if "_id" in fields:
+            del fields["_id"]
         l = []
         for key in fields.keys():
             if fields[key] == int:
                 l.append(key + " integer")
             else:
                 l.append(key + " string")
-        l.append("_id integer generated always as identity")
-        l.append("uuid string unique")
+        l.append("_id string unique")
         for field in l:
             try:
                 self.c.execute("create domain %s" % field)
@@ -105,7 +102,7 @@ class MongoNuodb(MongoBasic):
 
     def insert_document(self, name, fields, values):
         id = uuid()
-        fields.append("uuid")
+        fields.append("_id")
         values.append(str(id))
         s_fields = self._add_coma_and_quote(fields, 0)
         s_values = self._add_coma_and_quote(values, 1)
