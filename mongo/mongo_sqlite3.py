@@ -5,9 +5,6 @@ from mongo_basic import MongoBasic
 
 class MongoSqlite3(MongoBasic):
     types = {
-        "int": "int",
-        "str": "str",
-        "bool": "bool",
         "NoneType": "str",
     }
 
@@ -53,7 +50,7 @@ class MongoSqlite3(MongoBasic):
             del fields["_id"]
         l = []
         for field, type in fields.items():
-            l.append("%s %s" % (field, type))
+            l.append("%s %s" % (field, self.types.get(type, type)))
         l.append("_id INTEGER PRIMARY KEY ASC")
         l = ", ".join(l)
         self.c.execute("create table if not exists %s (%s)" % (name, l))
@@ -110,9 +107,10 @@ class MongoSqlite3(MongoBasic):
         if len(fields) > 0:
             l = []
             for field, type in fields.items():
-                l.append("%s %s" % (field, type))
-            s_fields = ", ".join(l)
-            self.c.execute("alter table %s add column %s" % (name, s_fields))
+                l.append("%s %s" % (field, self.types.get(type, type)))
+            s_fields = " ".join(l)
+            for field in l:
+                self.c.execute("alter table %s add column %s" % (name, field))
 
     def create_index(self, name, keys, options, unique=False):
         if unique is False:

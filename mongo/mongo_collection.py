@@ -76,8 +76,6 @@ class MongoCollection(MongoMatch):
                 for key, val in object.items():
                     if key not in d:
                         d[key] = type(val).__name__
-                    else:
-                        raise MongoError("Field with different types detected")
         if self._collection is None:
             self._db.create_collection(self.name, d)
         self._db.add_fields(self.name, d)
@@ -244,7 +242,7 @@ class MongoCollection(MongoMatch):
         collection = self.find()
         if collection is None:
             return 0
-        return len(collection)
+        return len(collection._collection)
 
     def sort(self, key, direction=False):
         """
