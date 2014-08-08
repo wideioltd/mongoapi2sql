@@ -12,18 +12,45 @@ class MongoNuodb(MongoBasic):
     def __init__(self):
         self.db = None
         self.c = None
-        self.schema = None
 
-    def connect(self, db, host, user, password, options={}):
+    def connect(self, db, host, user, password, options={"schema": "mongo-syntax"}):
         self.db = pynuodb.connect(db, host, user, password, options)
         self.c = self.db.cursor()
-        self.schema = "mongodb_syntax"
-        if "schema" not in options:
-            self.c.execute("use %s" % self.schema)
         return self.c
 
     def close(self):
         self.db.close()
+
+    def collection_names(self):
+        self.c.execute("show tables")
+        return self.c.fetchall()
+
+    def select(self, name, filters, limit):
+        all = "select * from %s" % name
+        i = []
+        for filter in filters:
+            if filter != "":
+                l.append("%s where %s" % (all, filter))
+            else:
+                l.append(all)
+        res = " intersect ".join(l)
+        if res = "":
+            res = all
+        if limit is not None:
+            res += " limit %s" % limit
+        self.c.execute(res)
+        t = self.c.fetchall()
+        d = []
+        try:
+            l = len(t[0])
+        except IndexError:
+            return None
+        for tp in t:
+            dic = {}
+            for i in range(l):
+                 dic[self.c.description[i][0]] = tp[i]
+            d.append(dic)
+        return d
 
     def create_collection(self, name, fields):
         if "_ID" in fields:
@@ -57,28 +84,6 @@ class MongoNuodb(MongoBasic):
         ids = [(id, ) for id in ids]
         self.c.executemany("update %s set %s where _id=?" %
                            (name, ", ".join(s)), ids)
-
-    def collection_names(self):
-        self.c.execute("show tables")
-        return self.c.fetchall()
-
-    def all_document(self, name):
-        try:
-            self.c.execute("select * from %s" % name)
-        except pynuodb.ProgrammingError:
-            return None
-        t = self.c.fetchall()
-        d = []
-        try:
-            l = len(t[0])
-        except IndexError:
-            return None
-        for tp in t:
-            dic = {}
-            for i in range(l):
-                 dic[self.c.description[i][0]] = tp[i]
-            d.append(dic)
-        return d
 
     @staticmethod
     def _add_coma_and_quote(s, opt):

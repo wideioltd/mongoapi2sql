@@ -15,19 +15,19 @@ class MongoSqlite3(MongoBasic):
         self.c = db.cursor()
         return self.c
 
+    def close(self):
+        self.db.close()
+
     def collection_names(self):
         self.c.execute("select name from sqlite_master where type = 'table'")
         return map(lambda row: row['name'], self.c.fetchall())
-
-    def close(self):
-        self.db.close()
 
     def select(self, name, filters, limit):
         all = "select * from %s" % name
         l = []
         for filter in filters:
             if filter != "":
-                l.append("%s where %s" % (all, filter[0]))
+                l.append("%s where %s" % (all, filter))
             else:
                 l.append(all)
         res = " intersect ".join(l)
