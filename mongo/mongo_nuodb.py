@@ -6,6 +6,13 @@ from mongo_basic import MongoBasic
 
 
 class MongoNuodb(MongoBasic):
+    types = {
+        "int": "int",
+        "str": "string",
+        "bool": "boolean",
+        "NoneType": "string",
+    }
+
     def __init__(self):
         self.db = None
         self.c = None
@@ -57,26 +64,13 @@ class MongoNuodb(MongoBasic):
             del fields["_id"]
         l = []
         for field, type in fields.items():
-            l.append("%s %s" % (field, type))
+            l.append("%s %s" % (field, self.types[type]))
         l.append("_id string unique")
-        for field in l:
-            try:
-                self.c.execute("create domain %s" % field)
-            except:
-                pass
         l = ", ".join(l)
         self.c.execute("create table if not exists %s (%s)" % (name, l))
 
-    def update_by_ids(self, name, fields, values, ids):
-        s = []
-        for f, v in zip(fields, values):
-            if type(values) == int:
-                s.append("%s=%s" % (f, v))
-            else:
-                s.append("%s='%s'" % (f, v))
-        ids = [(id, ) for id in ids]
-        self.c.executemany("update %s set %s where _id=?" %
-                           (name, ", ".join(s)), ids)
+    def drop_collection(self, name):
+        self.c.execute("drop table %s" % name)
 
     @staticmethod
     def _add_coma_and_quote(s, opt):
@@ -84,17 +78,11 @@ class MongoNuodb(MongoBasic):
         for a in s:
             if type(a) == str and opt == 1:
                 n+= "'%s', " % a
+            elif a is None and opt == 1:
+                n += "'null', "
             else:
                 n += "%s, " % a
         return n
-
-    def update_by_ids(self, name, fields, values, ids):
-        s = []
-        for f, v in zip(fields, values):
-            s.append("%s=%s" % (str(f), str(v)))
-        ids = [(id, ) for id in ids]
-        self.c.executemany("update %s set %s where _id=?" %
-                           (name, ", ".join(s)), ids)
 
     def insert_document(self, name, fields, values):
         id = uuid()
@@ -106,15 +94,16 @@ class MongoNuodb(MongoBasic):
                        (name, s_fields[:-2], s_values[:-2]))
         return id
 
-    def begin_transaction(self):
-        try:
-            self.c.execute("start transaction")
-        except:
-            self.commit_transaction()
-            self.begin_transaction()
-
-    def commit_transaction(self):
-	self.c.execute("commit")
+    def update_by_ids(self, name, fields, values, ids):
+        s = []
+        for f, v in zip(fields, values):
+            if type(v) == str:
+                s.append("%s='%s'" % (f, v))
+            else:
+                s.append("%s=%s" % (f, v))
+        ids = [(id, ) for id in ids]
+        self.c.executemany("update %s set %s where _id=?" %
+                           (name, ", ".join(s)), ids)
 
     def delete_documents(self, name, ids):
         ids = [(id, ) for id in ids]
@@ -129,9 +118,26 @@ class MongoNuodb(MongoBasic):
         if len(fields) > 0:
             l = []
             for field, type in fields.items():
-                l.append("%s %s" % (field, type))
+                l.append("%s %s" % (field, self.types[type]))
             s_fields = ", ".join(l)
             self.c.execute("alter table %s add column %s" % (name, s_fields))
 
-    def drop_collection(self, name):
-        self.c.execute("drop table %s" % name)
+    def create_index(self, name, keys, options):
+        for k, v in keys.items():
+            try:
+                self.c.execute("create index %s on %s (%s %s)" % (v, name, k, options))
+            except pynuodb.ProgrammingError:
+                pass
+
+    def begin_transaction(self):
+        try:
+            self.c.execute("start transaction")
+        except:
+            self.commit_transaction()
+            self.begin_transaction()
+
+    def commit_transaction(self):
+	self.c.execute("commit")
+
+    def logout(self):
+        pass

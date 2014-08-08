@@ -87,7 +87,10 @@ class MongoCollection(MongoMatch):
         """
         Returns _id of matching documents
         """
-        collection = self._find(filters, limit)._collection
+        res = self._find(filters, limit)
+        if res is None:
+            return None
+        collection = res._collection
         try:
             return [document["_id"] for document in collection]
         except KeyError:
@@ -238,7 +241,7 @@ class MongoCollection(MongoMatch):
             return 1
         elif self._collection is not None:
             return len(self._collection)
-        collection = self._db.all_document(self.name)
+        collection = self.find()
         if collection is None:
             return 0
         return len(collection)
@@ -254,7 +257,7 @@ class MongoCollection(MongoMatch):
         self._collection.sort(key=lambda document: document[key], reverse=direction)
         return self
 
-    def create_index(self, keys, options):
+    def create_index(self, keys, options=""):
         """
         Create indexes on the current collection
         """

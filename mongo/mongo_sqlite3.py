@@ -4,6 +4,13 @@ from mongo_basic import MongoBasic
 
 
 class MongoSqlite3(MongoBasic):
+    types = {
+        "int": "int",
+        "str": "str",
+        "bool": "bool",
+        "NoneType": "str",
+    }
+
     def __init__(self):
         self.db = None
         self.c = None
@@ -59,7 +66,9 @@ class MongoSqlite3(MongoBasic):
         n = ""
         for a in s:
             if type(a) == str:
-                n+= "'%s', " % a
+                n += "'%s', " % a
+            elif a == None:
+                n += "'null', "
             elif type(a) == bool:
                 # boolean does not seem to exist unfortunately in sqlite
                 if a == True:
@@ -105,10 +114,14 @@ class MongoSqlite3(MongoBasic):
             s_fields = ", ".join(l)
             self.c.execute("alter table %s add column %s" % (name, s_fields))
 
-    def create_index(self, name, keys, options):
+    def create_index(self, name, keys, options, unique=False):
+        if unique is False:
+            s = "create index %s on %s (%s %s)"
+        else:
+            s = "create unique index %s on %s (%s %s)"
         for k, v in keys.items():
             try:
-                self.c.execute("create index %s on %s (%s %s)" % (v, name, k, options))
+                self.c.execute(s % (v, name, k, options))
             except sqlite3.OperationalError:
                 pass
 

@@ -6,6 +6,7 @@ class MongoBasic(object):
     """
     The db you want to use should inherit from this class
     """
+
     def connect(self, *args, **kwargs):
         """
         Connect yourself to your db
