@@ -6,8 +6,8 @@ class MongoSyntax(object):
     """
     A class implementing the mongodb syntax for db
     """
-    ASCENDING = False
-    DESCENDING = True
+    ASC_SORT = False
+    DESC_SORT = True
 
     def __init__(self, class_db):
         """
@@ -46,6 +46,8 @@ class MongoSyntax(object):
         """
         Create a collection if it does not exists
         """
+        if self.args is None:
+            raise MongoError("Mongosyntax is not connected to any db.")
         ret = self.__getitem__(name)
         ret._create_collection()
         return ret
@@ -54,22 +56,30 @@ class MongoSyntax(object):
         """
         Drop a collection
         """
+        if self.args is None:
+            raise MongoError("Mongosyntax is not connected to any db.")
         return MongoCollection(name, self._class_db).drop()
 
     def collection_names(self):
         """
         Return a list of all collections
         """
+        if self.args is None:
+            raise MongoError("Mongosyntax is not connected to any db.")
         return self._class_db.collection_names()
 
     def logout(self, *args, **kwargs):
         """
         Logout
         """
+        if self.args is None:
+            raise MongoError("Mongosyntax is not connected to any db.")
         self._class_db.logout(*args, **kwargs)
 
     def close(self, *args, **kwargs):
         """
         Close the connection
         """
+        if self.args is None:
+            raise MongoError("Mongosyntax is not connected to any db.")
         self._class_db.close(*args, **kwargs)

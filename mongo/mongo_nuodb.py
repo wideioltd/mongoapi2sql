@@ -56,11 +56,8 @@ class MongoNuodb(MongoBasic):
         if "_id" in fields:
             del fields["_id"]
         l = []
-        for key in fields.keys():
-            if fields[key] == int:
-                l.append(key + " integer")
-            else:
-                l.append(key + " string")
+        for field, type in fields.items():
+            l.append("%s %s" % (field, type))
         l.append("_id string unique")
         for field in l:
             try:
@@ -74,10 +71,9 @@ class MongoNuodb(MongoBasic):
         s = []
         for f, v in zip(fields, values):
             if type(values) == int:
-                s.append("%s=%s" % (str(f), str(v)))
+                s.append("%s=%s" % (f, v))
             else:
-                s.append("%s='%s'" % (str(f), str(v)))
-
+                s.append("%s='%s'" % (f, v))
         ids = [(id, ) for id in ids]
         self.c.executemany("update %s set %s where _id=?" %
                            (name, ", ".join(s)), ids)
@@ -132,11 +128,8 @@ class MongoNuodb(MongoBasic):
                 del fields[info[0].lower()]
         if len(fields) > 0:
             l = []
-            for key in fields.keys():
-                if fields[key] == int:
-                    l.append(key + " integer")
-                else:
-                    l.append(key + " string")
+            for field, type in fields.items():
+                l.append("%s %s" % (field, type))
             s_fields = ", ".join(l)
             self.c.execute("alter table %s add column %s" % (name, s_fields))
 

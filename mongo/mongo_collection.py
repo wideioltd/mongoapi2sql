@@ -18,6 +18,10 @@ class MongoCollection(MongoMatch):
         self._cur_query = []
         self._query = query
 
+    def set_max(self, max):
+        self.max = max
+        return self
+
     def __str__(self):
         """
         Return string corresponding to the documents
@@ -71,7 +75,9 @@ class MongoCollection(MongoMatch):
             for object in objects:
                 for key, val in object.items():
                     if key not in d:
-                        d[key] = type(val)
+                        d[key] = type(val).__name__
+                    else:
+                        raise MongoError("Field with different types detected")
         if self._collection is None:
             self._db.create_collection(self.name, d)
         self._db.add_fields(self.name, d)
@@ -245,10 +251,8 @@ class MongoCollection(MongoMatch):
             return None
         elif isinstance(self._collection, list) is False:
             return self._collection
-        collection = list(self._collection)
-        collection.sort(key=lambda document: document[key], reverse=direction)
-        return MongoCollection(self.name, self._db, collection,
-                               self, self._query, self.max)
+        self._collection.sort(key=lambda document: document[key], reverse=direction)
+        return self
 
     def create_index(self, keys, options):
         """

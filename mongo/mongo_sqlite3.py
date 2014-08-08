@@ -44,7 +44,9 @@ class MongoSqlite3(MongoBasic):
     def create_collection(self, name, fields):
         if "_id" in fields:
             del fields["_id"]
-        l = list(fields)
+        l = []
+        for field, type in fields.items():
+            l.append("%s %s" % (field, type))
         l.append("_id INTEGER PRIMARY KEY ASC")
         l = ", ".join(l)
         self.c.execute("create table if not exists %s (%s)" % (name, l))
@@ -58,6 +60,12 @@ class MongoSqlite3(MongoBasic):
         for a in s:
             if type(a) == str:
                 n+= "'%s', " % a
+            elif type(a) == bool:
+                # boolean does not seem to exist unfortunately in sqlite
+                if a == True:
+                    n += "1, "
+                else:
+                    n += "0, "
             else:
                 n += "%s, " % a
         return n
@@ -73,9 +81,9 @@ class MongoSqlite3(MongoBasic):
         s = []
         for f, v in zip(fields, values):
             if type(v) == str:
-                s.append("%s='%s'" % (str(f), str(v)))
+                s.append("%s='%s'" % (f, v))
             else:
-                s.append("%s=%s" % (str(f), str(v)))
+                s.append("%s=%s" % (f, v))
         ids = [(id, ) for id in ids]
         self.c.executemany("update %s set %s where _id=?" %
                            (name, ", ".join(s)), ids)
@@ -91,7 +99,10 @@ class MongoSqlite3(MongoBasic):
             if info[0] in fields:
                 del fields[info[0]]
         if len(fields) > 0:
-            s_fields = ", ".join(fields)
+            l = []
+            for field, type in fields.items():
+                l.append("%s %s" % (field, type))
+            s_fields = ", ".join(l)
             self.c.execute("alter table %s add column %s" % (name, s_fields))
 
     def create_index(self, name, keys, options):
