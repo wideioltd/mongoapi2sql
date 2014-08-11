@@ -119,7 +119,7 @@ class MongoNuodb(MongoBasic):
         if len(fields) > 0:
             l = []
             for field, type in fields.items():
-                l.append("%s %s" % (field, self.types.get(typem type)))
+                l.append("%s %s" % (field, self.types.get(type, type)))
             s_fields = ", ".join(l)
             self.c.execute("alter table %s add column %s" % (name, s_fields))
 
