@@ -13,7 +13,7 @@ class MongoCollection(MongoMatch):
         self.name = key
         self.max = max
         self._db = db
-        self._collection = collection
+        self.collection = collection
         self._parent = parent
         self._cur_query = []
         self._query = query
@@ -26,13 +26,13 @@ class MongoCollection(MongoMatch):
         """
         Return string corresponding to the documents
         """
-        return repr(self._collection)
+        return repr(self.collection)
 
     def __getitem__(self, key):
         """
         Return index of collection
         """
-        return self._collection[key]
+        return self.collection[key]
 
     def _transaction(f):
         """
@@ -76,7 +76,7 @@ class MongoCollection(MongoMatch):
                 for key, val in object.items():
                     if key not in d:
                         d[key] = type(val).__name__
-        if self._collection is None:
+        if self.collection is None:
             self._db.create_collection(self.name, d)
         self._db.add_fields(self.name, d)
         return None
@@ -88,7 +88,7 @@ class MongoCollection(MongoMatch):
         res = self._find(filters, limit)
         if res is None:
             return None
-        collection = res._collection
+        collection = res.collection
         try:
             return [document["_id"] for document in collection]
         except KeyError:
@@ -113,7 +113,8 @@ class MongoCollection(MongoMatch):
         formated = []
         for item in collection:
             d = {}
-            map(lambda key: d.update({key: item[key]}), item.keys())
+            for k in item.keys():
+                d.update({k: item[k]})
             formated.append(d)
         return MongoCollection(self.name, self._db, formated,
                                self, self._cur_query, self.max)
@@ -199,9 +200,9 @@ class MongoCollection(MongoMatch):
         """
         Update documents by object all matching ids
         """
-        self._db.update_by_ids(self.name, object.keys(), object.values(), ids)
+        return self._db.update_by_ids(self.name, object.keys(), object.values(), ids)
 
-    def update(self, object, rules={}, limit=1):
+    def update(self, object, rules={}, upsert=False, limit=1):
         """
         Update documents by object all matching ids
         """
@@ -209,15 +210,17 @@ class MongoCollection(MongoMatch):
             raise MongoError("Multiple documents with the same_id, error")
         ids = self._ids_matching_document(limit, rules)
         if ids is not None:
-            self._update(object, ids)
             self._clear_parent()
+            return self._update(object, ids)
+        elif upsert is True:
+            return self.insert(object)
 
     @_transaction
     def _remove(self, ids):
         """
         Remove documents matching ids
         """
-        self._db.delete_documents(self.name, ids)
+        return self._db.delete_documents(self.name, ids)
 
     def remove(self, rules={}, limit=1):
         """
@@ -226,37 +229,54 @@ class MongoCollection(MongoMatch):
         ids = self._ids_matching_document(limit, rules)
         if ids is None:
             return None
-        self._remove(ids)
         self._clear_parent()
-        return ids
+        return self._remove(ids)
 
     def count(self):
         """
         Return the length of the collection or
         return the length of a collection matching precedents queries
         """
-        if isinstance(self._collection, dict):
+        if isinstance(self.collection, dict):
             return 1
-        elif self._collection is not None:
-            return len(self._collection)
+        elif self.collection is not None:
+            return len(self.collection)
         collection = self.find()
         if collection is None:
             return 0
-        return len(collection._collection)
+        return len(collection.collection)
 
     def sort(self, key, direction=False):
         """
         Sort the collection matching precedent queries  by key
         """
-        if self._collection is None:
+        if self.collection is None:
             return None
-        elif isinstance(self._collection, list) is False:
-            return self._collection
-        self._collection.sort(key=lambda document: document[key], reverse=direction)
+        elif isinstance(self.collection, list) is False:
+            return self.collection
+        self.collection.sort(key=lambda document: document[key], reverse=direction)
         return self
 
-    def create_index(self, keys, options=""):
+    def create_index(self, indexes):
         """
         Create indexes on the current collection
         """
-        self._db.create_index(self.name, keys, options)
+        for index in indexes:
+            self._db.create_index(self.name, index[0], index[1])
+
+    def find_and_modify(self, query={}, update=None, new=False,
+                        remove=False, upsert=False, full_response=False):
+        if remove is True:
+            return self.remove(query)
+        else:
+            if new is False:
+                if self.find(query).collection == [] and upsert is True:
+                    return self.insert(update)
+                return self.update(update, query, upsert)
+            else:
+                old = self.find(query)[0]
+                if old.collection != []:
+                    self._update([old["_id"]])
+                elif upsert is True:
+                    self.insert(update)
+                return old
