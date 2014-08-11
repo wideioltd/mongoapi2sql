@@ -112,19 +112,23 @@ class MongoSqlite3(MongoBasic):
             for field in l:
                 self.c.execute("alter table %s add column %s" % (name, field))
 
-    def create_index(self, name, keys, options, unique=False):
+    def create_index(self, name, key, option, unique=False):
         if unique is False:
-            s = "create index %s on %s (%s %s)"
+            s = "create index %s_%s on %s (%s %s)"
         else:
-            s = "create unique index %s on %s (%s %s)"
-        for k, v in keys.items():
-            try:
-                self.c.execute(s % (v, name, k, options))
-            except sqlite3.OperationalError:
-                pass
+            s = "create unique index %s_%s on %s (%s %s)"
+        try:
+            self.c.execute(s % (key, option, name, key, option))
+        except sqlite3.OperationalError as e:
+            print e
 
     def begin_transaction(self):
-        self.c.execute("BEGIN")
+        try:
+            self.c.execute("BEGIN")
+        except as e:
+            print e
+            self.commit_transaction()
+            self.begin_transaction()
 
     def commit_transaction(self):
         self.db.commit()

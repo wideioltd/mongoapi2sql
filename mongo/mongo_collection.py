@@ -12,13 +12,16 @@ class MongoCollection(MongoMatch):
         """
         self.name = key
         self.max = max
-        self._db = db
         self.collection = collection
+        self._db = db
         self._parent = parent
         self._cur_query = []
         self._query = query
 
     def set_max(self, max):
+        """
+        Limit the numbers of matching objects in queries
+        """
         self.max = max
         return self
 
@@ -81,18 +84,22 @@ class MongoCollection(MongoMatch):
         self._db.add_fields(self.name, d)
         return None
 
-    def _ids_matching_document(self, limit, filters={}):
+    def _get_documents_ids(self, documents):
+        if documents == []:
+            return []
+        try:
+            return [document["_id"] for document in documents]
+        except KeyError:
+            return [document["_ID"] for document in documents]
+
+    def _matching_document(self, limit, filters={}):
         """
         Returns _id of matching documents
         """
         res = self._find(filters, limit)
         if res is None:
             return None
-        collection = res.collection
-        try:
-            return [document["_id"] for document in collection]
-        except KeyError:
-            return [document["_ID"] for document in collection]
+        return res.collection
 
     def rename(self, name):
         """
@@ -206,14 +213,17 @@ class MongoCollection(MongoMatch):
         """
         Update documents by object all matching ids
         """
-        if "_id" in object and (limit > 1 or limit is None):
+        if ("_id" in object or "_ID" in object) and (limit > 1 or limit is None):
             raise MongoError("Multiple documents with the same_id, error")
-        ids = self._ids_matching_document(limit, rules)
-        if ids is not None:
+        documents = self._matching_document(limit, rules)
+        if documents != []:
+            ids = self._get_documents_ids(documents)
             self._clear_parent()
-            return self._update(object, ids)
+            self._update(object, ids)
+            return documents
         elif upsert is True:
-            return self.insert(object)
+            self.insert(object)
+            return []
 
     @_transaction
     def _remove(self, ids):
@@ -226,11 +236,12 @@ class MongoCollection(MongoMatch):
         """
         Remove documents matching ids
         """
-        ids = self._ids_matching_document(limit, rules)
-        if ids is None:
-            return None
+        documents = self._matching_document(limit, rules)
+        if documents == []:
+            return []
         self._clear_parent()
-        return self._remove(ids)
+        self._remove(self._get_documents_ids(documents))
+        return documents
 
     def count(self):
         """
@@ -266,17 +277,18 @@ class MongoCollection(MongoMatch):
 
     def find_and_modify(self, query={}, update=None, new=False,
                         remove=False, upsert=False, full_response=False):
-        if remove is True:
-            return self.remove(query)
-        else:
-            if new is False:
-                if self.find(query).collection == [] and upsert is True:
-                    return self.insert(update)
-                return self.update(update, query, upsert)
+        documents = self._matching_document(limit=1, filters=query)
+        if documents != []:
+            if remove is True:
+                res = self._remove(self._get_documents_ids(documents))
             else:
-                old = self.find(query)[0]
-                if old.collection != []:
-                    self._update([old["_id"]])
-                elif upsert is True:
-                    self.insert(update)
-                return old
+                res = self._update(update, self._get_documents_ids(documents))
+            if new is False:
+                return documents[0]
+            return res
+        else:
+            if upsert is True:
+                self._insert(update)
+            if new is False:
+                return {}
+            return update

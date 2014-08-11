@@ -61,6 +61,8 @@ class MongoNuodb(MongoBasic):
     def create_collection(self, name, fields):
         if "_id" in fields:
             del fields["_id"]
+        if "_ID" in fields:
+            del fields["_ID"]
         l = []
         for field, type in fields.items():
             l.append("%s %s" % (field, self.types.get(type, type)))
@@ -122,16 +124,20 @@ class MongoNuodb(MongoBasic):
             self.c.execute("alter table %s add column %s" % (name, s_fields))
 
     def create_index(self, name, keys, options):
-        for k, v in keys.items():
-            try:
-                self.c.execute("create index %s on %s (%s %s)" % (v, name, k, options))
-            except pynuodb.ProgrammingError:
-                pass
+        if unique is False:
+            s = "create index %s_%s on %s (%s %s)"
+        else:
+            s = "create unique index %s_%s on %s (%s %s)"
+        try:
+            self.c.execute(s % (key, option, name, key, option))
+        except sqlite3.OperationalError as e:
+            print e
 
     def begin_transaction(self):
         try:
             self.c.execute("start transaction")
-        except:
+        except as e:
+            print e
             self.commit_transaction()
             self.begin_transaction()
 
