@@ -2,9 +2,12 @@
 from mongo_match import MongoMatch
 from mongo_error import MongoError
 from functools import wraps
+import json
 
 
 class MongoCollection(MongoMatch):
+    _restruct_sep = "__"
+
     def __init__(self, key, db, collection=None,
                  parent=None, query=[], max=None):
         """
@@ -68,7 +71,7 @@ class MongoCollection(MongoMatch):
         return self._db.select(self.name, self._cur_query, limit)
 
     @_transaction
-    def _create_collection(self, objects=None):
+    def _create_collection(self, objects=None, prefix=""):
         """
         Create a collection if it does not exist
         Add missing fields to the collection
@@ -77,8 +80,7 @@ class MongoCollection(MongoMatch):
         if objects is not None:
             for object in objects:
                 for key, val in object.items():
-                    if key not in d:
-                        d[key] = type(val).__name__
+                    d[prefix + key] = type(val).__name__
         if self.collection is None:
             self._db.create_collection(self.name, d)
         self._db.add_fields(self.name, d)
@@ -161,6 +163,23 @@ class MongoCollection(MongoMatch):
         self._clear_parent()
         return ids
 
+    def _restruct_object(self, object, prefix=""):
+        """
+        Return a simple restructured dict
+        """
+        if type(object) != dict:
+            return object
+        d = {}
+        for k, v in object.items():
+            t = type(v)
+            if t == dict:
+                d.update(self._restruct_object(v, prefix + k + self._restruct_sep))
+            elif t == list or t == tuple:
+                d[prefix + k] = json.dumps(v)
+            else:
+                d[prefix + k] = v
+        return d
+
     def insert_bulk(self, objects):
         """
         Insert new objects by bulk in the current collections
@@ -168,6 +187,7 @@ class MongoCollection(MongoMatch):
         """
         if isinstance(objects, list) is False:
             object = [objects]
+        objects = [self._restruct_object(object) for object in objects]
         self._create_collection(objects)
         return self._insert_bulk(objects)
 
@@ -177,7 +197,9 @@ class MongoCollection(MongoMatch):
         """
         if isinstance(objects, list) is False:
             objects = [objects]
+        objects = [self._restruct_object(object) for object in objects]
         self._create_collection(objects)
+        print objects
         return self._insert(objects)
 
     @_transaction
