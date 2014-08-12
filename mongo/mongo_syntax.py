@@ -8,14 +8,17 @@ class MongoSyntax(object):
     """
     ASC_SORT = False
     DESC_SORT = True
+    DB = None
 
-    def __init__(self, class_db):
+    def __init__(self, *args, **kwargs):
         """
-        Init MongoSyntax, class_db should be the class implementation
-        of your db inheriting from MongoBasic
+        Init MongoSyntax
         """
-        self._class_db = class_db()
-        self.args = None
+        if callable(self.DB) is False:
+            raise MongoError("DB not set to any class")
+        self._class_db = self.DB()
+        if len(args) > 0 or len(kwargs) > 0:
+            self.connect(*args, **kwargs)
 
     def __getattribute__(self, attr):
         """
@@ -30,8 +33,6 @@ class MongoSyntax(object):
         """
         Return a collection of the db
         """
-        if self.args is None:
-            raise MongoError("Mongosyntax is not connected to any db.")
         return MongoCollection(key, self._class_db)
 
     def connect(self, *args, **kwargs):
@@ -39,15 +40,12 @@ class MongoSyntax(object):
         Connect to the db with *args and **kwargs arguments
         necessary for your db, path or ip for example
         """
-        self.args = (args, kwargs)
-        return self._class_db.connect(*args, **kwargs)
+        self._class_db.connect(*args, **kwargs)
 
     def create_collection(self, name):
         """
         Create a collection if it does not exists
         """
-        if self.args is None:
-            raise MongoError("Mongosyntax is not connected to any db.")
         ret = self.__getitem__(name)
         ret._create_collection()
         return ret
@@ -56,30 +54,22 @@ class MongoSyntax(object):
         """
         Drop a collection
         """
-        if self.args is None:
-            raise MongoError("Mongosyntax is not connected to any db.")
         return MongoCollection(name, self._class_db).drop()
 
     def collection_names(self):
         """
         Return a list of all collections
         """
-        if self.args is None:
-            raise MongoError("Mongosyntax is not connected to any db.")
         return self._class_db.collection_names()
 
     def logout(self, *args, **kwargs):
         """
         Logout
         """
-        if self.args is None:
-            raise MongoError("Mongosyntax is not connected to any db.")
         self._class_db.logout(*args, **kwargs)
 
     def close(self, *args, **kwargs):
         """
         Close the connection
         """
-        if self.args is None:
-            raise MongoError("Mongosyntax is not connected to any db.")
         self._class_db.close(*args, **kwargs)

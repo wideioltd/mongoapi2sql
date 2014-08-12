@@ -26,7 +26,7 @@ class MongoMatch(object):
             elif type(v) == str:
                 res.append("(%s like '%s')" % (k, v))
             else:
-                res.append("(%s == %s)" % (k, v))
+                res.append("(%s = %s)" % (k, v))
         return res
 
     @staticmethod

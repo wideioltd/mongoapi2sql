@@ -1,9 +1,8 @@
 #!/usr/bin/env python2
 
-from mongo.mongo_syntax import MongoSyntax
-from mongo.mongo_sqlite3 import MongoSqlite3
+from mongo.mongo_connector import Sqlite3Connector
 
-db = MongoSyntax(MongoSqlite3)
+db = Sqlite3Connector()
 db.connect("test.sqlite3")
 test = db.test
 print "1  ----- ", db.collection_names()
@@ -16,7 +15,7 @@ print "7  ----- ", test.find({"b": 3})
 print "8  ----- ", test.find({"b": 3}).find({"a": 42})
 print "9  ----- ", test.find({"b": 3}).find({"a": 42}).find({"a": 1})
 print "10 ----- ", test.find({"b": 3}).sort("a")
-print "11 ----- ", test.find({"b": 3}).sort("a", MongoSyntax.DESC_SORT)
+print "11 ----- ", test.find({"b": 3}).sort("a", Sqlite3Connector.DESC_SORT)
 print "12 ----- ", test.find({"b": 3}).count()
 print "13 ----- ", test.find({"b": 3}).remove()
 print "14 ----- ", test.find({"b": 3}).count()

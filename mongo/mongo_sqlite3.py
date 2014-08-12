@@ -125,8 +125,7 @@ class MongoSqlite3(MongoBasic):
     def begin_transaction(self):
         try:
             self.c.execute("BEGIN")
-        except as e:
-            print e
+        except:
             self.commit_transaction()
             self.begin_transaction()
 

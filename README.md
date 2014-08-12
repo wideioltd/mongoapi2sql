@@ -11,24 +11,21 @@ how to use
 ### connection sqlite3
 
 ```python
-from mongo.mongo_syntax import MongoSyntax
-from mongo.mongo_sqlite3 import MongoSqlite3
+from mongo.mongo_connector import Sqlite3Connector
 
-db = MongoSyntax(MongoSqlite3)
+db = Sqlite3Connector()
 db.connect("/path/to/db/sqlite3")
 ```
 
 ### connection nuodb
 
 ```python
-from mongo.mongo_syntax import MongoSyntax
-from mongo.mongo_sqlite3 import MongoNuodb
+from mongo.mongo_connector import NuodbConnector
 
-db = MongoSyntax(MongoNuodb)
 options = {
     "schema": "name"
 }
-db.connect("db", "hostname", "user", "password", options)
+db = NuodbConnector("db", "hostname", "user", "password", options)
 ```
 
 ### basic usage
