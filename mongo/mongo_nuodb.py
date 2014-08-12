@@ -130,7 +130,7 @@ class MongoNuodb(MongoBasic):
             s = "create unique index %s_%s on %s (%s %s)"
         try:
             self.c.execute(s % (key, option, name, key, option))
-        except sqlite3.OperationalError as e:
+        except Exception as e:
             print e
 
     def begin_transaction(self):
