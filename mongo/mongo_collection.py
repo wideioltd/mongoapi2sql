@@ -2,6 +2,7 @@
 from mongo_match import MongoMatch
 from mongo_error import MongoError
 from functools import wraps
+from time import time
 import json
 
 
@@ -20,6 +21,7 @@ class MongoCollection(MongoMatch):
         self._parent = parent
         self._cur_query = []
         self._query = query
+	self._index_cache = {}
 
     def __next__(self):
         for i in self.collection:
@@ -65,13 +67,13 @@ class MongoCollection(MongoMatch):
             c.collection = None
             c = c._parent
 
-    def _get_documents(self, filters, limit):
+    def _get_documents(self, filters, limit, order=""):
         """
         Get a list of documents matching filters
         """
         query = MongoMatch.match_object(filters)
         self._cur_query = list(self._query)
-        self._cur_query.append(query)
+        self._cur_query.append(query + order)
         return self._db.select(self.name, self._cur_query, limit)
 
     @_transaction
@@ -98,11 +100,11 @@ class MongoCollection(MongoMatch):
         except KeyError:
             return [document["_ID"] for document in documents]
 
-    def _matching_document(self, limit, filters={}):
+    def _matching_document(self, limit, filters={}, order=""):
         """
         Returns _id of matching documents
         """
-        res = self._find(filters, limit)
+        res = self._find(filters, limit, order)
         if res is None:
             return None
         return res.collection
@@ -116,13 +118,13 @@ class MongoCollection(MongoMatch):
             return True
         return False
 
-    def _find(self, filters, limit):
+    def _find(self, filters, limit, order=""):
         """
         Return a new MongoCollection with the current query
         """
         collection = self._get_documents(filters, limit)
-        if collection is None:
-            return []
+        if collection is None or collection == []:
+            return MongoCollection(self.name, self._db, [], self, self._cur_query, self.max)
         formated = []
         for item in collection:
             d = {}
@@ -203,7 +205,6 @@ class MongoCollection(MongoMatch):
             objects = [objects]
         objects = [self._restruct_object(object) for object in objects]
         self._create_collection(objects)
-        print objects
         return self._insert(objects)
 
     @_transaction
@@ -233,6 +234,7 @@ class MongoCollection(MongoMatch):
         """
         Update documents by object all matching ids
         """
+	self._create_collection([object])
         return self._db.update_by_ids(self.name, object.keys(), object.values(), ids)
 
     def update(self, object, rules={}, upsert=False, limit=1):
@@ -294,26 +296,52 @@ class MongoCollection(MongoMatch):
         self.collection.sort(key=lambda document: document[key], reverse=direction)
         return self
 
-    def create_index(self, indexes):
+    @_transaction
+    def create_index(self, indexes, unique=False):
         """
         Create indexes on the current collection
         """
         for index in indexes:
-            self._db.create_index(self.name, index[0], index[1])
+            self._db.create_index(self.name, index[0], index[1], unique)
 
+    @_transaction
     def drop_index(self, index):
         self._db.drop_index(self.name, index)
 
-    def index_information(self):
-        self._db.index_information(self.name)
+    @_transaction
+    def ensure_index(self, key_or_list, unique=False, ttl=300):
+	if type(key_or_list) != list:
+	    key_or_list = [list]
+	for index in key_or_list:
+	    v = self._index_cache.get(index, -1)
+	    if time() - v < ttl:
+		continue
+	    else:
+	        self._index_cache.update({index: time()})
+		self._db.create_index(self.name, index[0], index[1], unique)
 
-    def find_and_modify(self, query={}, update=None, new=False,
+    def index_information(self):
+	return self._db.index_information(self.name)
+
+    def drop_indexes(self):
+	for index in self.index_information().keys():
+	    self.drop_index(index)
+
+    def find_and_modify(self, query={}, update=None, new=False, sort="",
                         remove=False, upsert=False, full_response=False):
-        documents = self._matching_document(limit=1, filters=query)
+	d = {1: "ASC", -1: "DESC"}
+	if sort != "":
+	    s_list = []
+	    for k, v in sort.items():
+		s_list.append("%s %s" % (k, d[v]))
+	    sort = " order by %s" % ", ".join(s_list)
+        documents = self._matching_document(limit=1, filters=query, order=sort)
         if documents != []:
             if remove is True:
                 res = self._remove(self._get_documents_ids(documents))
             else:
+		if "$set" in update and len(update) == 1:
+		    update = update["$set"]
                 res = self._update(update, self._get_documents_ids(documents))
             if new is False:
                 return documents[0]

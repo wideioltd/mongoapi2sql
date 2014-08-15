@@ -12,6 +12,11 @@ class MongoNuodb(MongoBasic):
         "NoneType": "string",
     }
 
+    indexes = {
+	1: "ASC",
+	-1: "DESC",
+    }
+
     def __init__(self):
         self.db = None
         self.c = None
@@ -121,7 +126,8 @@ class MongoNuodb(MongoBasic):
     def update_by_ids(self, name, fields, values, ids):
         s = []
         for f, v in zip(fields, values):
-            if type(v) == str:
+	    t = type(v)
+            if t != int and t != float:
                 s.append("%s='%s'" % (f, v))
             else:
                 s.append("%s=%s" % (f, v))
@@ -146,21 +152,37 @@ class MongoNuodb(MongoBasic):
             s_fields = ", ".join(l)
             self.c.execute("alter table %s add column %s" % (name, s_fields))
 
-    def create_index(self, name, keys, options):
+    def create_index(self, name, key, option, unique=False):
         if unique is False:
             s = "create index %s_%s on %s (%s %s)"
         else:
             s = "create unique index %s_%s on %s (%s %s)"
         try:
-            self.c.execute(s % (key, option, name, key, option))
-        except Exception as e:
-            print e
+	    key = key.replace(".", "__")
+            self.c.execute(s % (key, self.indexes.get(option, option), name, key, self.indexes.get(option, option)))
+        except:
+	    pass
+
+    def drop_index(self, name, index):
+	self.c.execute("drop index %s" % index)
+
+    def index_information(self, name):
+	self.c.execute("show table %s" % name)
+	l = filter(lambda s: "on field" in s, self.c.fetchall()[0][0].split('\n'))
+	indexes = {}
+	for index in l:
+	    sp = index.split()
+	    r = 1 if "ASC" in sp[2] else -1
+	    d = {'key': [(sp[-1], r)]}
+	    if sp[0] != "Secondary":
+		d.update(unique=True)
+	    indexes.update({sp[2]:d})	    
+	return indexes
 
     def begin_transaction(self):
         try:
             self.c.execute("start transaction")
-        except Exception as e:
-            print e
+        except:
             self.commit_transaction()
             self.begin_transaction()
 
