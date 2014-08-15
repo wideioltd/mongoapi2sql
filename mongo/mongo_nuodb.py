@@ -28,6 +28,29 @@ class MongoNuodb(MongoBasic):
         self.c.execute("show tables")
         return self.c.fetchall()
 
+    @staticmethod
+    def _restruct_subobject(val, key, dict):
+        index = key.find("__")
+        k = key[index + 2:]
+        d = dict.get(k, {})
+        if "__" in k:
+            val = MongoNuodb.restruct_subobject(val, k, d)
+        else:
+            d.update({k: val})
+        dict[key[:index]] = d
+        return dict
+
+    @staticmethod
+    def _restruct_object(object, keys, l):
+        dict = {}
+        for i in range(l):
+            key = keys[i][0].lower()
+            if "__" in key:
+                MongoNuodb._restruct_subobject(object[i], key, dict)
+            else:
+                dict[key] = object[i]
+        return dict
+
     def select(self, name, filters, limit):
         all = "select * from %s" % name
         l = []
@@ -52,9 +75,7 @@ class MongoNuodb(MongoBasic):
         except IndexError:
             return None
         for item in fetched:
-            dict = {}
-            for i in range(l):
-                 dict[self.c.description[i][0]] = item[i]
+            dict = MongoNuodb._restruct_object(item, self.c.description, l)
             ids.append(dict)
         return ids
 
@@ -77,12 +98,14 @@ class MongoNuodb(MongoBasic):
     def _add_coma_and_quote(s, opt):
         n = ""
         for a in s:
-            if type(a) == str and opt == 1:
-                n+= "'%s', " % a
-            elif a is None and opt == 1:
+            t = type(a)
+            if a is None and opt == 1:
                 n += "'null', "
-            else:
+            elif t == int or t == float or opt == 0:
                 n += "%s, " % a
+            else:
+                n+= "'%s', " % a
+
         return n
 
     def insert_document(self, name, fields, values):

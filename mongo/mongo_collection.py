@@ -21,6 +21,10 @@ class MongoCollection(MongoMatch):
         self._cur_query = []
         self._query = query
 
+    def __next__(self):
+        for i in self.collection:
+            yield i
+
     def set_max(self, max):
         """
         Limit the numbers of matching objects in queries
@@ -118,7 +122,7 @@ class MongoCollection(MongoMatch):
         """
         collection = self._get_documents(filters, limit)
         if collection is None:
-            return None
+            return []
         formated = []
         for item in collection:
             d = {}
@@ -296,6 +300,12 @@ class MongoCollection(MongoMatch):
         """
         for index in indexes:
             self._db.create_index(self.name, index[0], index[1])
+
+    def drop_index(self, index):
+        self._db.drop_index(self.name, index)
+
+    def index_information(self):
+        self._db.index_information(self.name)
 
     def find_and_modify(self, query={}, update=None, new=False,
                         remove=False, upsert=False, full_response=False):

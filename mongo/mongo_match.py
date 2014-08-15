@@ -56,7 +56,7 @@ class MongoMatch(object):
         '$lte': lambda x, y:  "(%s <= %s)" % (x, y),
         '$gt': lambda x, y: "(%s > %s)" % (x, y),
         '$gte': lambda x, y: "(%s >= %s)" % (x, y),
-        '$ne': lambda x, y: "(%s != %s)" % (x, y),
+        '$ne': lambda x, y: "(%s != %s)" % (x, y) if type(y) != str else "(%s != '%s')" % (x, y),
         '$in': lambda x, y: "(%s in %s)" % (x, y),
         '$nin': lambda x, y: "(%s not in %s)" % (x, y),
         '$regex': lambda x, y: "(%s like %s)" % (x, y),
