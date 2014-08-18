@@ -53,10 +53,10 @@ class MongoNuodb(MongoDb):
         Find object with a particular pattern and restruct it
         a__b: 42 --> {a: {b: 42}}
         """
-        index = key.find(self.SEP)
+        index = key.find(MongoNuodb.SEP)
         k = key[index + 2:]
         d = dict.get(k, {})
-        if self.SEP in k:
+        if MongoNuodb.SEP in k:
             val = MongoNuodb.restruct_subobject(val, k, d)
         else:
             d.update({k: val})
@@ -71,7 +71,7 @@ class MongoNuodb(MongoDb):
         dict = {}
         for i in range(l):
             key = keys[i][0].lower()
-            if self.SEP in key:
+            if MongoNuodb.SEP in key:
                 MongoNuodb._restruct_subobject(object[i], key, dict)
             else:
                 dict[key] = object[i]

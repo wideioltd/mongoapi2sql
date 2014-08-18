@@ -39,6 +39,35 @@ class MongoSqlite3(MongoDb):
         self.c.execute("select name from sqlite_master where type = 'table'")
         return map(lambda row: row['name'], self.c.fetchall())
 
+    @staticmethod
+    def _restruct_subobject(val, key, dict):
+        """
+        Find object with a particular pattern and restruct it
+        a__b: 42 --> {a: {b: 42}}
+        """
+        index = key.find(MongoSqlite3.SEP)
+        k = key[index + 2:]
+        d = dict.get(k, {})
+        if MongoSqlite3.SEP in k:
+            val = MongoSqlite3._restruct_subobject(val, k, d)
+        else:
+            d.update({k: val})
+        dict[key[:index]] = d
+        return dict
+
+    @staticmethod
+    def _restruct_object(object):
+        """
+        Restructure the object to create a dictionary with lowercase keys
+        """
+        dict = {}
+        for key in object.keys():
+            if MongoSqlite3.SEP in key:
+                MongoSqlite3._restruct_subobject(object[key], key, dict)
+            else:
+                dict[key] = object[key]
+        return dict
+
     def select(self, name, filters, limit):
         """
         Return n <limit> documents of the collection <name> matching <filter>
@@ -59,7 +88,13 @@ class MongoSqlite3(MongoDb):
             self.c.execute(res)
         except sqlite3.OperationalError:
             return None
-        return self.c.fetchall()
+        res = self.c.fetchall()
+        items = []
+        for item in res:
+            dict = MongoSqlite3._restruct_object(item)
+            items.append(dict)
+        return items
+
 
     def create_collection(self, name, fields):
         """
