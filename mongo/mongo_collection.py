@@ -75,8 +75,10 @@ class MongoCollection(MongoVars, MongoMatch):
         Get a list of documents matching filters
         """
         query = MongoMatch.match_object(filters)
+        query = self._restruct_object(query)
         self._cur_query = list(self._query)
         self._cur_query.append(query + order)
+        print self._cur_query
         return self._db.select(self.name, self._cur_query, limit)
 
     @_transaction
@@ -125,7 +127,6 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Return a new MongoCollection with the current query
         """
-        filters = self._restruct_object(filters)
         collection = self._get_documents(filters, limit)
         if collection is None or collection == []:
             return MongoCollection(self.name, self._db, [], self, self._cur_query, self.max)
