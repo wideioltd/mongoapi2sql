@@ -125,6 +125,7 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Return a new MongoCollection with the current query
         """
+        filters = self._restruct_object(filters)
         collection = self._get_documents(filters, limit)
         if collection is None or collection == []:
             return MongoCollection(self.name, self._db, [], self, self._cur_query, self.max)
@@ -305,6 +306,8 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Create indexes on the current collection
         """
+        if isinstance(indexes, list) is False:
+            indexes = [indexes]
         for index in indexes:
             self._db.create_index(self.name, index[0], index[1], unique)
 

@@ -30,9 +30,58 @@ db = NuodbConnector("db", "hostname", "user", "password", options)
 
 ### basic usage
 
-test = db.test # test = db["test"] works fine too
+#### how to select a collection
 
 ```python
+test = db.test
+test = db["test"]
+```
+
+#### how to query a document
+
+```python
+test = db.test
+test.find() # get all elements
+test.find({"field": {"$gt": 42}}) # get alls elements with the <field> "field" > 42
+test.find_one() # get one element
+```
+
+#### how to insert a document
+
+```python
+test = db.test
+test.insert({"field": "value"})
+test.insert([{"field": "value"}, {"field": "value2"}])
+test.insert({"a": {"b": 1, "c": 2}}) # this will create field a__b and a__c
+```
+
+This will create all necessary fields, for yours objects
+
+#### how to remove a document
+
+```python
+test = db.test
+test.remove() # remove one element
+test.remove({"a": 42}) # remove one element matching the query
+test.remove(limit=None) # remove all elements
+```
+
+#### indexes
+
+```python
+test = db.test
+test.index_information()
+test.create_index([("field", "index_name"), ("field2", "index2")])
+test.drop_index("index_name")
+test.create_index(("field", "unique_index"), unique=True)
+test.drop_indexes()
+```
+
+#### some other functions
+
+```python
+test = db.test # test = db["test"] works fine too
+
 db.collection_names()
 1  --> []
 
@@ -116,5 +165,5 @@ print db.collection_names()
 how to implement your database
 ------------------------------
 
-Take a look at MongoSqlite3 and MongoBasic
+Take a look at MongoSqlite3 and MongoDb
 Create your own class !
