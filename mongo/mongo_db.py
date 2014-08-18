@@ -1,11 +1,18 @@
 #!/usr/bin/env python
+from mongo_vars import MongoVars
 from mongo_error import MongoError
 
 
-class MongoBasic(object):
+class MongoDb(MongoVars):
     """
     The db you want to use should inherit from this class
     """
+
+    def __init__(self):
+        """
+        Init object
+        """
+        raise MongoError("__init__ not yet implemented")
 
     def connect(self, *args, **kwargs):
         """
@@ -13,21 +20,21 @@ class MongoBasic(object):
         """
         raise MongoError("connect not yet implemented")
 
-    def collection_names(self):
-        """
-        Return a list of all collections
-        """
-        raise MongoError("collections_names not yet implemented")
-
     def close(self, *args, **kwargs):
         """
         Close your db
         """
         raise MongoError("close not yet implemented")
 
+    def collection_names(self):
+        """
+        Return a list of all collections
+        """
+        raise MongoError("collections_names not yet implemented")
+
     def select(self, name, filters, limit):
         """
-        Return <limit> documents of the collection <name> matching <filter>
+        Return n <limit> documents of the collection <name> matching <filter>
         """
         raise MongoError("all_element not yet implemented")
 
@@ -77,6 +84,18 @@ class MongoBasic(object):
         the collection <name> with <options>
         """
         raise MongoError("create_index not yet implemented")
+
+    def drop_index(self, name, index):
+        """
+        Drop the index <index>
+        """
+        raise MongoError("drop_index not yet implemented")
+
+    def index_information(self, name):
+        """
+        Display imformations on indexes in collection <name>
+        """
+        raise MongoError("index_information not yet implemented")
 
     def begin_transaction(self):
         """

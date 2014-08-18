@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 from mongo_match import MongoMatch
 from mongo_error import MongoError
+from mongo_vars import MongoVars
 from functools import wraps
 from time import time
 import json
 
 
-class MongoCollection(MongoMatch):
-    _restruct_sep = "__"
-
+class MongoCollection(MongoVars, MongoMatch):
     def __init__(self, key, db, collection=None,
                  parent=None, query=[], max=None):
         """
@@ -52,9 +51,13 @@ class MongoCollection(MongoMatch):
         """
         @wraps(f)
         def transaction(*args, **kwargs):
-            args[0]._db.begin_transaction()
-            ret = f(*args, **kwargs)
-            args[0]._db.commit_transaction()
+            try:
+                args[0]._db.begin_transaction()
+                ret = f(*args, **kwargs)
+            except Exception as e:
+                raise e
+            finally:
+                args[0]._db.commit_transaction()
             return ret
         return transaction
 
@@ -93,12 +96,12 @@ class MongoCollection(MongoMatch):
         return None
 
     def _get_documents_ids(self, documents):
+        """
+        Return the ids of the documents
+        """
         if documents == []:
             return []
-        try:
-            return [document["_id"] for document in documents]
-        except KeyError:
-            return [document["_ID"] for document in documents]
+        return [document["_id"] for document in documents]
 
     def _matching_document(self, limit, filters={}, order=""):
         """
@@ -172,6 +175,7 @@ class MongoCollection(MongoMatch):
     def _restruct_object(self, object, prefix=""):
         """
         Return a simple restructured dict
+        {a: {b:42, c:"42"}} --> {a__b: 42, a__c:"42}
         """
         if type(object) != dict:
             return object
@@ -179,7 +183,7 @@ class MongoCollection(MongoMatch):
         for k, v in object.items():
             t = type(v)
             if t == dict:
-                d.update(self._restruct_object(v, prefix + k + self._restruct_sep))
+                d.update(self._restruct_object(v, prefix + k + self.SEP))
             elif t == list or t == tuple:
                 d[prefix + k] = json.dumps(v)
             else:
@@ -306,10 +310,17 @@ class MongoCollection(MongoMatch):
 
     @_transaction
     def drop_index(self, index):
+        """
+        Drop index <index> of the current collection
+        """
         self._db.drop_index(self.name, index)
 
     @_transaction
     def ensure_index(self, key_or_list, unique=False, ttl=300):
+        """
+        Create index if not exist and cache it for <ttl> seconds
+        """
+        raise MongoError("Not yet fully implemented")
 	if type(key_or_list) != list:
 	    key_or_list = [list]
 	for index in key_or_list:
@@ -321,14 +332,24 @@ class MongoCollection(MongoMatch):
 		self._db.create_index(self.name, index[0], index[1], unique)
 
     def index_information(self):
+        """
+        Display informations on the current index
+        """
 	return self._db.index_information(self.name)
 
     def drop_indexes(self):
+        """
+        Drop all indexes in the current collection
+        """
 	for index in self.index_information().keys():
 	    self.drop_index(index)
 
     def find_and_modify(self, query={}, update=None, new=False, sort="",
                         remove=False, upsert=False, full_response=False):
+        """
+        Find and modify a single document, update or remove must be set
+        full_response not yet implemented
+        """
 	d = {1: "ASC", -1: "DESC"}
 	if sort != "":
 	    s_list = []
