@@ -323,15 +323,15 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Create index if not exist and cache it for <ttl> seconds
         """
+        raise MongoError("Not yet fully implemented")
 	if type(key_or_list) != list:
-	    key_or_list = [key_or_list]
+	    key_or_list = [list]
 	for index in key_or_list:
-	    v = self._index_cache.get(index, 0)
-	    t = time()
-	    if t - v < ttl:
+	    v = self._index_cache.get(index, -1)
+	    if time() - v < ttl:
 		continue
 	    else:
-	        self._index_cache.update({index: t})
+	        self._index_cache.update({index: time()})
 		self._db.create_index(self.name, index[0], index[1], unique)
 
     def index_information(self):
@@ -368,11 +368,11 @@ class MongoCollection(MongoVars, MongoMatch):
 		    update = update["$set"]
                 res = self._update(update, self._get_documents_ids(documents))
             if new is False:
-                res = documents[0]
-            return res if full_response is True else res['_id']
+                return documents[0]
+            return res
         else:
             if upsert is True:
                 self._insert(update)
             if new is False:
                 return {}
-            return update if full_response is True else res['_id']
+            return update
