@@ -1,2 +1,4 @@
 **\.pyc
+**~
 test.sql*
+mongo/pynuodb/*
