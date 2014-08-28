@@ -74,6 +74,10 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Get a list of documents matching filters
         """
+	for k in filters.keys():
+	    if "." in k:
+		filters[k.replace(".", "__")] = filters[k]
+		del filters[k]
         query = self._restruct_object(filters)
         query = MongoMatch.match_object(query)
         self._cur_query = list(self._query)
