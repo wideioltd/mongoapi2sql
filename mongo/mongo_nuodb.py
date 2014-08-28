@@ -202,7 +202,6 @@ class MongoNuodb(MongoDb):
                 del fields[info[0].lower()]
         if len(fields) > 0:
             for field, type in fields.items():
-		print "alter table %s add column %s %s" % (name, field, self.types.get(type, type))
                 self.c.execute("alter table %s add column %s %s" % (name, field, self.types.get(type, type)))
 
     def create_index(self, name, key, option, unique=False):

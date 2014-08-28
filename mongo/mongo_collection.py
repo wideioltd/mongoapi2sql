@@ -20,7 +20,7 @@ class MongoCollection(MongoVars, MongoMatch):
         self._parent = parent
         self._cur_query = []
         self._query = query
-	self._index_cache = {}
+        self._index_cache = {}
 
     def __next__(self):
         for i in self.collection:
@@ -74,8 +74,8 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Get a list of documents matching filters
         """
-        query = MongoMatch.match_object(filters)
-        query = self._restruct_object(query)
+        query = self._restruct_object(filters)
+        query = MongoMatch.match_object(query)
         self._cur_query = list(self._query)
         self._cur_query.append(query + order)
         return self._db.select(self.name, self._cur_query, limit)
@@ -86,14 +86,14 @@ class MongoCollection(MongoVars, MongoMatch):
         Create a collection if it does not exist
         Add missing fields to the collection
         """
-	d = {}
+        d = {}
         if objects is not None:
             for object in objects:
                 for key, val in object.items():
-		    if key != "$set":
-	                d[prefix + key] = type(val).__name__
-		    else:
-			d[prefix + val.keys()[0]] = type(val.values()[0]).__name__
+                    if key != "$set":
+                        d[prefix + key] = type(val).__name__
+                    else:
+                        d[prefix + val.keys()[0]] = type(val.values()[0]).__name__
         if self.collection is None:
             self._db.create_collection(self.name, d)
         self._db.add_fields(self.name, d)
@@ -186,7 +186,7 @@ class MongoCollection(MongoVars, MongoMatch):
         d = {}
         for k, v in object.items():
             t = type(v)
-            if t == dict:
+            if t == dict and "$" not in v.keys()[0]:
                 d.update(self._restruct_object(v, prefix + k + self.SEP))
             elif t == list or t == tuple:
                 d[prefix + k] = json.dumps(v)
@@ -242,15 +242,15 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Update documents by object all matching ids
         """
-	self._create_collection([object])
+        self._create_collection([object])
         return self._db.update_by_ids(self.name, object.keys(), object.values(), ids)
 
     def update(self, rules={}, object={}, upsert=False, limit=1):
         """
         Update documents by object all matching ids
         """
-	if object == {}:
-	    return []
+        if object == {}:
+            return []
         if ("_id" in object or "_ID" in object) and (limit > 1 or limit is None):
             raise MongoError("Multiple documents with the same_id, error")
         documents = self._matching_document(limit, rules)
@@ -328,29 +328,29 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Create index if not exist and cache it for <ttl> seconds
         """
-	if type(key_or_list) != list:
-	    key_or_list = [key_or_list]
-	for index in key_or_list:
-	    v = self._index_cache.get(index, 0)
-	    t = time()
-	    if t - v < ttl:
-		continue
-	    else:
-	        self._index_cache.update({index: t})
-		self._db.create_index(self.name, index[0], index[1], unique)
+        if type(key_or_list) != list:
+            key_or_list = [key_or_list]
+        for index in key_or_list:
+            v = self._index_cache.get(index, 0)
+            t = time()
+            if t - v < ttl:
+                continue
+            else:
+                self._index_cache.update({index: t})
+                self._db.create_index(self.name, index[0], index[1], unique)
 
     def index_information(self):
         """
         Display informations on the current index
         """
-	return self._db.index_information(self.name)
+        return self._db.index_information(self.name)
 
     def drop_indexes(self):
         """
         Drop all indexes in the current collection
         """
-	for index in self.index_information().keys():
-	    self.drop_index(index)
+        for index in self.index_information().keys():
+            self.drop_index(index)
 
     def find_and_modify(self, query={}, update=None, new=False, sort="",
                         remove=False, upsert=False, full_response=False):
@@ -358,19 +358,19 @@ class MongoCollection(MongoVars, MongoMatch):
         Find and modify a single document, update or remove must be set
         full_response not yet implemented
         """
-	d = {1: "ASC", -1: "DESC"}
-	if sort != "":
-	    s_list = []
-	    for k, v in sort.items():
-		s_list.append("%s %s" % (k, d[v]))
-	    sort = " order by %s" % ", ".join(s_list)
+        d = {1: "ASC", -1: "DESC"}
+        if sort != "":
+            s_list = []
+            for k, v in sort.items():
+                s_list.append("%s %s" % (k, d[v]))
+            sort = " order by %s" % ", ".join(s_list)
         documents = self._matching_document(limit=1, filters=query, order=sort)
         if documents != []:
             if remove is True:
                 res = self._remove(self._get_documents_ids(documents))
             else:
-		if "$set" in update and len(update) == 1:
-		    update = update["$set"]
+                if "$set" in update and len(update) == 1:
+                    update = update["$set"]
                 res = self._update(update, self._get_documents_ids(documents))
             if new is False:
                 res = documents[0]

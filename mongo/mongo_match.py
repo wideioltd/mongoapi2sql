@@ -21,8 +21,8 @@ class MongoMatch(object):
             if k[0] == "$":
                 res.append(MongoMatch._operators[k](v))
             elif type(v) == dict:
-                res.append(MongoMatch._operators[v.keys()[0]](
-                    k, v.values()[0]))
+                    res.append(MongoMatch._operators[v.keys()[0]](k, v.values()[0]))
+
             elif type(v) == str:
                 res.append("(%s like '%s')" % (k, v))
             else:
