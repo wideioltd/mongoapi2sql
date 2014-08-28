@@ -381,7 +381,8 @@ class MongoCollection(MongoVars, MongoMatch):
             return res if full_response is True else res['_id']
         else:
             if upsert is True:
-                self._insert(update)
+                # FIXME: check self_insert
+                return self._insert(update)
             if new is False:
-                return {}
+                return None
             return update if full_response is True else res['_id']
