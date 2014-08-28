@@ -60,7 +60,11 @@ class MongoNuodb(MongoDb):
             val = MongoNuodb.restruct_subobject(val, k, d)
         else:
             d.update({k: val})
-        dict[key[:index]] = d
+        r = dict.get(key[:index], {})
+        if r == {}:
+            dict[key[:index]] = d
+        else:
+            r.update(d)
         return dict
 
     @staticmethod
