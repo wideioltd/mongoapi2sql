@@ -167,6 +167,9 @@ class MongoNuodb(MongoDb):
         s = []
         for f, v in zip(fields, values):
 	    t = type(v)
+	    if f == "$set":
+		f = v.keys()[0]
+		v = v.values()[0]
             if t != int and t != float:
                 s.append("%s='%s'" % (f, v))
             else:
@@ -194,11 +197,9 @@ class MongoNuodb(MongoDb):
             if info[0].lower() in fields:
                 del fields[info[0].lower()]
         if len(fields) > 0:
-            l = []
             for field, type in fields.items():
-                l.append("%s %s" % (field, self.types.get(type, type)))
-            s_fields = ", ".join(l)
-            self.c.execute("alter table %s add column %s" % (name, s_fields))
+		print "alter table %s add column %s %s" % (name, field, self.types.get(type, type))
+                self.c.execute("alter table %s add column %s %s" % (name, field, self.types.get(type, type)))
 
     def create_index(self, name, key, option, unique=False):
         """

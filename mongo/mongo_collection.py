@@ -86,11 +86,14 @@ class MongoCollection(MongoVars, MongoMatch):
         Create a collection if it does not exist
         Add missing fields to the collection
         """
-        d = {}
+	d = {}
         if objects is not None:
             for object in objects:
                 for key, val in object.items():
-                    d[prefix + key] = type(val).__name__
+		    if key != "$set":
+	                d[prefix + key] = type(val).__name__
+		    else:
+			d[prefix + val.keys()[0]] = type(val.values()[0]).__name__
         if self.collection is None:
             self._db.create_collection(self.name, d)
         self._db.add_fields(self.name, d)
@@ -242,10 +245,12 @@ class MongoCollection(MongoVars, MongoMatch):
 	self._create_collection([object])
         return self._db.update_by_ids(self.name, object.keys(), object.values(), ids)
 
-    def update(self, object, rules={}, upsert=False, limit=1):
+    def update(self, rules={}, object={}, upsert=False, limit=1):
         """
         Update documents by object all matching ids
         """
+	if object == {}:
+	    return []
         if ("_id" in object or "_ID" in object) and (limit > 1 or limit is None):
             raise MongoError("Multiple documents with the same_id, error")
         documents = self._matching_document(limit, rules)

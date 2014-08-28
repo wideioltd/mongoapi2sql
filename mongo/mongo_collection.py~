@@ -86,7 +86,7 @@ class MongoCollection(MongoVars, MongoMatch):
         Create a collection if it does not exist
         Add missing fields to the collection
         """
-        d = {}
+	d = {}
         if objects is not None:
             for object in objects:
                 for key, val in object.items():
@@ -242,10 +242,12 @@ class MongoCollection(MongoVars, MongoMatch):
 	self._create_collection([object])
         return self._db.update_by_ids(self.name, object.keys(), object.values(), ids)
 
-    def update(self, object, rules={}, upsert=False, limit=1):
+    def update(self, rules={}, object={}, upsert=False, limit=1):
         """
         Update documents by object all matching ids
         """
+	if object == {}:
+	    return []
         if ("_id" in object or "_ID" in object) and (limit > 1 or limit is None):
             raise MongoError("Multiple documents with the same_id, error")
         documents = self._matching_document(limit, rules)
@@ -323,15 +325,15 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Create index if not exist and cache it for <ttl> seconds
         """
-        raise MongoError("Not yet fully implemented")
 	if type(key_or_list) != list:
-	    key_or_list = [list]
+	    key_or_list = [key_or_list]
 	for index in key_or_list:
-	    v = self._index_cache.get(index, -1)
-	    if time() - v < ttl:
+	    v = self._index_cache.get(index, 0)
+	    t = time()
+	    if t - v < ttl:
 		continue
 	    else:
-	        self._index_cache.update({index: time()})
+	        self._index_cache.update({index: t})
 		self._db.create_index(self.name, index[0], index[1], unique)
 
     def index_information(self):
@@ -368,11 +370,11 @@ class MongoCollection(MongoVars, MongoMatch):
 		    update = update["$set"]
                 res = self._update(update, self._get_documents_ids(documents))
             if new is False:
-                return documents[0]
-            return res
+                res = documents[0]
+            return res if full_response is True else res['_id']
         else:
             if upsert is True:
                 self._insert(update)
             if new is False:
                 return {}
-            return update
+            return update if full_response is True else res['_id']
