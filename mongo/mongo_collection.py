@@ -190,15 +190,20 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         if type(object) != dict:
             return object
+
         d = {}
         for k, v in object.items():
-            t = type(v)
-            if t == dict and "$" not in v.keys()[0]:
-                d.update(self._restruct_object(v, prefix + k + self.SEP))
-            elif t == list or t == tuple:
-                d[prefix + k] = json.dumps(v)
+            if "$" in k:
+                d.update({k: test(v, prefix)})
             else:
-                d[prefix + k] = v
+                k = k.replace(".", "__")
+                t = type(v)
+                if t is dict:
+                    d.update(test(v, prefix + k + self.SEP))
+                elif t is list or t is tuple:
+                    d[prefix + k] = json.dumps(v)
+                else:
+                    d[prefix + k] = v
         return d
 
     def insert_bulk(self, objects):
