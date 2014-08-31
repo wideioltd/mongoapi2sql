@@ -19,12 +19,15 @@ class MongoNuodb(MongoDb):
 	-1: "DESC",
     }
 
+    _jar_path = "/home/ak/mongo.jar"
+
     def __init__(self):
         """
         Init object
         """
         self.db = None
         self.c = None
+        self._jar = False
 
     def connect(self, db, host, user, password, options={"schema": "mongo-syntax"}):
         """
@@ -157,11 +160,31 @@ class MongoNuodb(MongoDb):
         id = uuid()
         fields.append("_id")
         values.append(str(id))
-        s_fields = self._add_coma_and_quote(fields, 0)
-        s_values = self._add_coma_and_quote(values, 1)
+        d = {}
+        for f, v in zip(fields, values):
+            if f == "$set" or f == "$push" or f == "$inc":
+                d.update(v)
+            else:
+                d.update({f: v})
+        s_fields = self._add_coma_and_quote(d.keys(), 0)
+        s_values = self._add_coma_and_quote(d.values(), 1)
         self.c.execute("insert into %s (%s) values (%s)" %
                        (name, s_fields[:-2], s_values[:-2]))
         return id
+
+    def _call_cmd(self, name, cmd, object, ids):
+        if self._jar is not True:
+            self._jar = True
+            try:
+                self.c.execute("create javaclass if not exists call_cmd from '%s'" % self._jar_path)
+                self.c.execute("create procedure inc(in table string, in field string, in filters string, in x int) language java external 'call_cmd:Mongo.do_inc'")
+                self.c.execute("create procedure pull(in table string, in field string, in filters string, in x string) language java external 'call_cmd:Mongo.do_pull'")
+                self.c.execute("create procedure push(in table string, in field string, in filters string, in x string) language java external 'call_cmd:Mongo.do_push'")
+            except Exception as e:
+                print e
+        for id in ids:
+            for k, v in object.items():
+                self.c.execute("execute %s(%s, %s, where _id='%s', %s)" % (cmd[1:], name, k, v, id, v))
 
     def update_by_ids(self, name, fields, values, ids):
         """
@@ -171,10 +194,9 @@ class MongoNuodb(MongoDb):
         s = []
         for f, v in zip(fields, values):
 	    t = type(v)
-	    if f == "$set":
-		f = v.keys()[0]
-		v = v.values()[0]
-            if t != int and t != float:
+            if "$" in f:
+                self._call_cmd(name, f, v, ids)
+            elif t != int and t != float:
                 s.append("%s='%s'" % (f, v))
             else:
                 s.append("%s=%s" % (f, v))

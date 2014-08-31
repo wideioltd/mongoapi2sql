@@ -90,14 +90,17 @@ class MongoCollection(MongoVars, MongoMatch):
         Create a collection if it does not exist
         Add missing fields to the collection
         """
+
         d = {}
         if objects is not None:
             for object in objects:
                 for key, val in object.items():
-                    if key != "$set":
+                    if key != "$set" and key != "$push"
+                    and key != "$pull" and key != "$inc":
                         d[prefix + key] = type(val).__name__
                     else:
-                        d[prefix + val.keys()[0]] = type(val.values()[0]).__name__
+                        for k, v in val.items():
+                            d[prefix + k] = type(v).__name__
         if self.collection is None:
             self._db.create_collection(self.name, d)
         self._db.add_fields(self.name, d)
@@ -378,11 +381,11 @@ class MongoCollection(MongoVars, MongoMatch):
                 res = self._update(update, self._get_documents_ids(documents))
             if new is False:
                 res = documents[0]
-            return res if full_response is True else res['_id']
+            return res
         else:
             if upsert is True:
                 # FIXME: check self_insert
                 return self._insert(update)
             if new is False:
                 return None
-            return update if full_response is True else res['_id']
+            return update
