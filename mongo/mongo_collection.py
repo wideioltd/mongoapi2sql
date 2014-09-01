@@ -22,7 +22,9 @@ class MongoCollection(MongoVars, MongoMatch):
         self._query = query
         self._index_cache = {}
 
-    def __next__(self):
+    def __iter__(self):
+	if self.collection == []:
+	    raise StopIteration	    
         for i in self.collection:
             yield i
 
@@ -43,7 +45,9 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Return index of collection
         """
-        return self.collection[key]
+	if self.collection == []:
+	    return None
+	return self.collection[key]
 
     def _transaction(f):
         """
@@ -51,13 +55,13 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         @wraps(f)
         def transaction(*args, **kwargs):
-            try:
-                args[0]._db.begin_transaction()
-                ret = f(*args, **kwargs)
-            except Exception as e:
-                raise e
-            finally:
-                args[0]._db.commit_transaction()
+            #try:
+            args[0]._db.begin_transaction()
+            ret = f(*args, **kwargs)
+            #except Exception as e:
+            #raise e
+            #finally:
+            args[0]._db.commit_transaction()
             return ret
         return transaction
 
@@ -78,10 +82,11 @@ class MongoCollection(MongoVars, MongoMatch):
 	    if "." in k:
 		filters[k.replace(".", "__")] = filters[k]
 		del filters[k]
-        query = self._restruct_object(filters)
-        query = MongoMatch.match_object(query)
-        self._cur_query = list(self._query)
-        self._cur_query.append(query + order)
+
+        filters = self._restruct_object(filters)
+        filters = MongoMatch.match_object(filters)
+	self._cur_query = list(self._query)
+        self._cur_query.append(filters + order)
         return self._db.select(self.name, self._cur_query, limit)
 
     @_transaction
@@ -90,17 +95,21 @@ class MongoCollection(MongoVars, MongoMatch):
         Create a collection if it does not exist
         Add missing fields to the collection
         """
-
-        d = {}
+	objects = [self._restruct_object(object) for object in objects]
+	d = {}
         if objects is not None:
             for object in objects:
                 for key, val in object.items():
-                    if key != "$set" and key != "$push"
+                    if key != "$set" and key != "$push" \
                     and key != "$pull" and key != "$inc":
-                        d[prefix + key] = type(val).__name__
+			if type(val) != dict:
+                            d[prefix + key] = type(val).__name__
+			else:
+			    d[prefix + key] = "str"
                     else:
                         for k, v in val.items():
-                            d[prefix + k] = type(v).__name__
+			    d[prefix + k] = type(v).__name__
+                            
         if self.collection is None:
             self._db.create_collection(self.name, d)
         self._db.add_fields(self.name, d)
@@ -166,9 +175,10 @@ class MongoCollection(MongoVars, MongoMatch):
         Insert new objects in the current collections and return their ids
         """
         ids = []
-        objects = filter(lambda obj: obj != {}, objects)
-        for obj in objects:
-            ids.append(self._db.insert_document(
+	objects = filter(lambda obj: obj != {}, objects)
+	for obj in objects:
+            obj = self._restruct_object(obj)
+	    ids.append(self._db.insert_document(
                 self.name, obj.keys(), obj.values()))
         self._clear_parent()
         return ids
@@ -190,19 +200,18 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         if type(object) != dict:
             return object
-
         d = {}
         for k, v in object.items():
-            if "$" in k:
-                d.update({k: test(v, prefix)})
+            if k in ["$push", "$inc", "$pull"]:
+                d.update({k: self._restruct_object(v, prefix)})
             else:
                 k = k.replace(".", "__")
                 t = type(v)
-                if t is dict:
-                    d.update(test(v, prefix + k + self.SEP))
+                if t is dict and len(v) != 0 and "$" not in k and "$" not in v.keys()[0]:
+                    d.update(self._restruct_object(v, prefix + k + self.SEP))
                 elif t is list or t is tuple:
                     d[prefix + k] = json.dumps(v)
-                else:
+	        else:
                     d[prefix + k] = v
         return d
 
@@ -213,7 +222,6 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         if isinstance(objects, list) is False:
             object = [objects]
-        objects = [self._restruct_object(object) for object in objects]
         self._create_collection(objects)
         return self._insert_bulk(objects)
 
@@ -223,7 +231,6 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         if isinstance(objects, list) is False:
             objects = [objects]
-        objects = [self._restruct_object(object) for object in objects]
         self._create_collection(objects)
         return self._insert(objects)
 
@@ -254,6 +261,7 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Update documents by object all matching ids
         """
+	object = self._restruct_object(object)
         self._create_collection([object])
         return self._db.update_by_ids(self.name, object.keys(), object.values(), ids)
 
@@ -265,6 +273,7 @@ class MongoCollection(MongoVars, MongoMatch):
             return []
         if ("_id" in object or "_ID" in object) and (limit > 1 or limit is None):
             raise MongoError("Multiple documents with the same_id, error")
+	object = self._restruct_object(object)
         documents = self._matching_document(limit, rules)
         if documents != []:
             ids = self._get_documents_ids(documents)
@@ -390,7 +399,7 @@ class MongoCollection(MongoVars, MongoMatch):
         else:
             if upsert is True:
                 # FIXME: check self_insert
-                return self._insert(update)
+                return self._insert([update])
             if new is False:
                 return None
             return update

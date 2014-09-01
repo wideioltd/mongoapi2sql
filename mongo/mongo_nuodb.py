@@ -176,7 +176,6 @@ class MongoNuodb(MongoDb):
         if self._jar is not True:
             self._jar = True
             try:
-                self.c.execute("create javaclass if not exists call_cmd from '%s'" % self._jar_path)
                 self.c.execute("create procedure inc(in table string, in field string, in filters string, in x int) language java external 'call_cmd:Mongo.do_inc'")
                 self.c.execute("create procedure pull(in table string, in field string, in filters string, in x string) language java external 'call_cmd:Mongo.do_pull'")
                 self.c.execute("create procedure push(in table string, in field string, in filters string, in x string) language java external 'call_cmd:Mongo.do_push'")
@@ -184,7 +183,7 @@ class MongoNuodb(MongoDb):
                 print e
         for id in ids:
             for k, v in object.items():
-                self.c.execute("execute %s(%s, %s, where _id='%s', %s)" % (cmd[1:], name, k, v, id, v))
+		self.c.execute("execute %s('%s', '%s', '%s', '%s')" % (cmd[1:], name, k, id, str(v).replace("'", "\"")))
 
     def update_by_ids(self, name, fields, values, ids):
         """
@@ -194,15 +193,18 @@ class MongoNuodb(MongoDb):
         s = []
         for f, v in zip(fields, values):
 	    t = type(v)
-            if "$" in f:
+	    if "$set" == f:
+		self.update_by_ids(name, v.keys(), v.values(), ids)		
+            elif "$" in f:
                 self._call_cmd(name, f, v, ids)
             elif t != int and t != float:
-                s.append("%s='%s'" % (f, v))
+                s.append("%s='%s'" % (f, str(v).replace("'", "\"")))
             else:
                 s.append("%s=%s" % (f, v))
-        ids = [(id, ) for id in ids]
-        self.c.executemany("update %s set %s where _id=?" %
-                           (name, ", ".join(s)), ids)
+	if len(s) != 0:
+	        ids = [(id, ) for id in ids]
+        	self.c.executemany("update %s set %s where _id=?" %
+                	           (name, ", ".join(s)), ids)
 
     def delete_documents(self, name, ids):
         """
