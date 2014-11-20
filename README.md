@@ -5,6 +5,11 @@ Mongodb syntax for database
 
 Currently mongo_sqlite3 seems to work fine, although there is still a lot more to change
 
+### Installation:
+sudo python ./setup.py install
+new usage:
+import mongoapi2sql.mongo_connector as mongo_connector
+
 how to use
 ----------
 
