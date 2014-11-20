@@ -163,7 +163,7 @@ class MongoNuodb(MongoDb):
         with <fields> and <values> being list
         todo: ID issue
         """
-        print("INS")
+        #print("INS")
         id = uuid()
         #ALWAYS_ADD_PRIMARYKEY=0
         #if ALWAYS_ADD_PRIMARYKEY:
@@ -182,7 +182,7 @@ class MongoNuodb(MongoDb):
                 d.update({f: v})
         s_fields = self._add_coma_and_quote(d.keys(), 0)
         s_values = self._add_coma_and_quote(d.values(), 1)
-        print("insert into %s (%s) values (%s)" %(name, s_fields[:-2], s_values[:-2]))
+        #print("insert into %s (%s) values (%s)" %(name, s_fields[:-2], s_values[:-2]))
         self.c.execute("insert into %s (%s) values (%s)" %
                        (name, s_fields[:-2], s_values[:-2]))
         return id
