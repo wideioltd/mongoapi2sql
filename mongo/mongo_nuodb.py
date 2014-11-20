@@ -4,9 +4,13 @@ from uuid import uuid4 as uuid
 
 from mongo_db import MongoDb
 
+#MongoNuodb.IDFIELD="id" #to 
 
 class MongoNuodb(MongoDb):
     # types for type not existing in nuodb
+    #IDFIELD="_id" #default
+    IDFIELD="id" #default
+    
     types = {
         "str": "string",
         "bool": "boolean",
@@ -35,6 +39,7 @@ class MongoNuodb(MongoDb):
         """
         self.db = pynuodb.connect(db, host, user, password, options)
         self.c = self.db.cursor()
+        self.c.execute("SET AUTOCOMMIT ON;")
         return self.c
 
     def close(self):
@@ -119,12 +124,12 @@ class MongoNuodb(MongoDb):
         """
         Create the collection named <name> with a set of field <fields>
         """
-        if "_id" in fields:
-            del fields["_id"]
+        if MongoNuodb.IDFIELD in fields:
+            del fields[MongoNuodb.IDFIELD]
         l = []
         for field, type in fields.items():
             l.append("%s %s" % (field, self.types.get(type, type)))
-        l.append("_id string unique")
+        l.append(MongoNuodb.IDFIELD+" string unique")
         l = ", ".join(l)
         self.c.execute("create table if not exists %s (%s)" % (name, l))
 
@@ -156,9 +161,18 @@ class MongoNuodb(MongoDb):
         """
         Insert a single document with fields=values in collection <name>
         with <fields> and <values> being list
+        todo: ID issue
         """
+        print("INS")
         id = uuid()
-        fields.append("_id")
+        #ALWAYS_ADD_PRIMARYKEY=0
+        #if ALWAYS_ADD_PRIMARYKEY:
+        #ID or _ID are not actually stored
+        #fields.append("_id")
+        #values.append(str(id))
+        #fields.append("id") #needs to be unique
+        #values.append(str(id))
+        fields.append(MongoNuodb.IDFIELD)
         values.append(str(id))
         d = {}
         for f, v in zip(fields, values):
@@ -168,6 +182,7 @@ class MongoNuodb(MongoDb):
                 d.update({f: v})
         s_fields = self._add_coma_and_quote(d.keys(), 0)
         s_values = self._add_coma_and_quote(d.values(), 1)
+        print("insert into %s (%s) values (%s)" %(name, s_fields[:-2], s_values[:-2]))
         self.c.execute("insert into %s (%s) values (%s)" %
                        (name, s_fields[:-2], s_values[:-2]))
         return id
@@ -190,6 +205,7 @@ class MongoNuodb(MongoDb):
         Update by ids with fields=values in table <name>
         with <fields> and <values> as tuples
         """
+        #print("UPD")
         s = []
         for f, v in zip(fields, values):
 	    t = type(v)
@@ -203,8 +219,10 @@ class MongoNuodb(MongoDb):
                 s.append("%s=%s" % (f, v))
 	if len(s) != 0:
 	        ids = [(id, ) for id in ids]
-        	self.c.executemany("update %s set %s where _id=?" %
-                	           (name, ", ".join(s)), ids)
+	        #was: "... where _id=?"
+	        ss=("update %s set %s where "+MongoNuodb.IDFIELD+"=?")%(name, ", ".join(s))
+	        #print(ss)
+        	self.c.executemany(ss, ids)
 
     def delete_documents(self, name, ids):
         """
@@ -212,7 +230,7 @@ class MongoNuodb(MongoDb):
         with matching ids <ids>
         """
         ids = [(id, ) for id in ids]
-        self.c.executemany("delete from %s where _id=?" % name, ids)
+        self.c.executemany(("delete from %s where "+MongoNuodb.IDFIELD+"=?") % name, ids)
 
     def add_fields(self, name, fields):
         """

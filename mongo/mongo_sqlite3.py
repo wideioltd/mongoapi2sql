@@ -4,6 +4,7 @@ from mongo_db import MongoDb
 
 
 class MongoSqlite3(MongoDb):
+    IDFIELD="id"
     # types for type not existing in sqlite3
     types = {
         "NoneType": "str",
@@ -104,12 +105,12 @@ class MongoSqlite3(MongoDb):
         """
         Create the collection named <name> with a set of field <fields>
         """
-        if "_id" in fields:
-            del fields["_id"]
+        if IDFIELD in fields:
+            del fields[IDFIELD]
         l = []
         for field, type in fields.items():
             l.append("%s %s" % (field, self.types.get(type, type)))
-        l.append("_id INTEGER PRIMARY KEY ASC")
+        l.append( IDFIELD+" INTEGER PRIMARY KEY ASC")
         l = ", ".join(l)
         self.c.execute("create table if not exists %s (%s)" % (name, l))
 
@@ -160,7 +161,7 @@ class MongoSqlite3(MongoDb):
             else:
                 s.append("%s=%s" % (f, v))
         ids = [(id, ) for id in ids]
-        self.c.executemany("update %s set %s where _id=?" %
+        self.c.executemany(("update %s set %s where "+IDFIELD+"=?") %
                            (name, ", ".join(s)), ids)
 
     def delete_documents(self, name, ids):
@@ -169,7 +170,7 @@ class MongoSqlite3(MongoDb):
         with matching ids <ids>
         """
         ids = [(id, ) for id in ids]
-        self.c.executemany("delete from %s where _id=?" % name, ids)
+        self.c.executemany(("delete from %s where "+IDFIELD+"=?") % name, ids)
 
     def add_fields(self, name, fields):
         """

@@ -8,6 +8,7 @@ import json
 
 
 class MongoCollection(MongoVars, MongoMatch):
+    IDFIELD="id"
     def __init__(self, key, db, collection=None,
                  parent=None, query=[], max=None):
         """
@@ -121,7 +122,7 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         if documents == []:
             return []
-        return [document["_id"] for document in documents]
+        return [document[MongoCollection.IDFIELD] for document in documents]
 
     def _matching_document(self, limit, filters={}, order=""):
         """
@@ -269,9 +270,11 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Update documents by object all matching ids
         """
+        #print("U12 %r"%(rules))
+        #bug!! rules and object are confused!
         if object == {}:
             return []
-        if ("_id" in object or "_ID" in object) and (limit > 1 or limit is None):
+        if (MongoCollection.IDFIELD.lower() in object or MongoCollection.IDFIELD.upper() in object) and (limit > 1 or limit is None):
             raise MongoError("Multiple documents with the same_id, error")
 	object = self._restruct_object(object)
         documents = self._matching_document(limit, rules)
