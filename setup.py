@@ -20,7 +20,7 @@ setup(
     license='BSD licence, see LICENCE.txt',
     long_description=open('README.md').read(),
     packages=['mongoapi2sql'],
-    package_dir={'mongoapi2sql': 'mongo'},
+    #package_dir={'': 'mongoapi2sql'},
     #packages=[''],
     #package_dir={'mongoapi2sql': 'mongo'},
     #packages=['mongoapi2sql'],
