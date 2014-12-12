@@ -7,10 +7,19 @@ Currently mongo_sqlite3 seems to work fine, although there is still a lot more t
 
 ### Installation:
 sudo python ./setup.py install
-new usage:
-import mongoapi2sql.mongo_connector as mongo_connector
 
-how to use
+how to use (new)
+----------------
+new usage:
+# import mongoapi2sql.mongo_connector as mongo_connector  #not anymore
+# new usage:
+import mongoapi2sql
+mongoapi2sql.NuodbConnector
+# or:
+from mongoapi2sql.mongo_connector import NuodbConnector
+
+
+how to use (old)
 ----------
 
 ### connection sqlite3
