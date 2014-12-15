@@ -22,6 +22,11 @@ if VERBOSE:
 
 
 
+#DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = True
+import os
+DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = os.getenv('MONGOAPI2SQL_DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS', True)
+#todo: refactor as a field or a function
+
 class MongoCollection(MongoVars, MongoMatch):
     IDFIELD="id"
     
