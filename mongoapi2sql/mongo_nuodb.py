@@ -4,13 +4,13 @@ from uuid import uuid4 as uuid
 
 from mongo_db import MongoDb
 
-#MongoNuodb.IDFIELD="id" #to 
+#MongoNuodb.IDFIELD="id" #to
 
 class MongoNuodb(MongoDb):
     # types for type not existing in nuodb
     #IDFIELD="_id" #default
     IDFIELD="id" #default
-    
+
     types = {
         "str": "string",
         "bool": "boolean",
@@ -19,8 +19,8 @@ class MongoNuodb(MongoDb):
 
     # corresponding options for indexes
     indexes = {
-	1: "ASC",
-	-1: "DESC",
+        1: "ASC",
+        -1: "DESC",
     }
 
     _jar_path = "/home/ak/mongo.jar"
@@ -105,8 +105,8 @@ class MongoNuodb(MongoDb):
             res = all
         if limit is not None:
             res += " limit %s" % limit
-	try:
-	    self.c.execute(res)
+        try:
+            self.c.execute(res)
         except pynuodb.ProgrammingError:
             return None
         fetched = self.c.fetchall()
@@ -198,7 +198,7 @@ class MongoNuodb(MongoDb):
                 print e
         for id in ids:
             for k, v in object.items():
-		self.c.execute("execute %s('%s', '%s', '%s', '%s')" % (cmd[1:], name, k, id, str(v).replace("'", "\"")))
+                self.c.execute("execute %s('%s', '%s', '%s', '%s')" % (cmd[1:], name, k, id, str(v).replace("'", "\"")))
 
     def update_by_ids(self, name, fields, values, ids):
         """
@@ -208,21 +208,21 @@ class MongoNuodb(MongoDb):
         #print("UPD")
         s = []
         for f, v in zip(fields, values):
-	    t = type(v)
-	    if "$set" == f:
-		self.update_by_ids(name, v.keys(), v.values(), ids)		
+            t = type(v)
+            if "$set" == f:
+                self.update_by_ids(name, v.keys(), v.values(), ids)
             elif "$" in f:
                 self._call_cmd(name, f, v, ids)
             elif t != int and t != float:
                 s.append("%s='%s'" % (f, str(v).replace("'", "\"")))
             else:
                 s.append("%s=%s" % (f, v))
-	if len(s) != 0:
-	        ids = [(id, ) for id in ids]
-	        #was: "... where _id=?"
-	        ss=("update %s set %s where "+MongoNuodb.IDFIELD+"=?")%(name, ", ".join(s))
-	        #print(ss)
-        	self.c.executemany(ss, ids)
+        if len(s) != 0:
+            ids = [(id, ) for id in ids]
+            #was: "... where _id=?"
+            ss=("update %s set %s where "+MongoNuodb.IDFIELD+"=?")%(name, ", ".join(s))
+            #print(ss)
+            self.c.executemany(ss, ids)
 
     def delete_documents(self, name, ids):
         """
@@ -256,32 +256,32 @@ class MongoNuodb(MongoDb):
         else:
             s = "create unique index %s_%s on %s (%s %s)"
         try:
-	    key = key.replace(".", self.SEP)
+            key = key.replace(".", self.SEP)
             self.c.execute(s % (key, self.indexes.get(option, option), name, key, self.indexes.get(option, option)))
         except:
-	    pass
+            pass
 
     def drop_index(self, name, index):
         """
         Drop the index <index>
         """
-	self.c.execute("drop index %s" % index)
+        self.c.execute("drop index %s" % index)
 
     def index_information(self, name):
         """
         Display informations on indexes in collection <name>
         """
-	self.c.execute("show table %s" % name)
-	l = filter(lambda s: "on field" in s, self.c.fetchall()[0][0].split('\n'))
-	indexes = {}
-	for index in l:
-	    sp = index.split()
-	    r = 1 if "ASC" in sp[2] else -1
-	    d = {'key': [(sp[-1], r)]}
-	    if sp[0] != "Secondary":
-		d.update(unique=True)
-	    indexes.update({sp[2]:d})
-	return indexes
+        self.c.execute("show table %s" % name)
+        l = filter(lambda s: "on field" in s, self.c.fetchall()[0][0].split('\n'))
+        indexes = {}
+        for index in l:
+            sp = index.split()
+            r = 1 if "ASC" in sp[2] else -1
+            d = {'key': [(sp[-1], r)]}
+            if sp[0] != "Secondary":
+                d.update(unique=True)
+            indexes.update({sp[2]:d})
+        return indexes
 
     def begin_transaction(self):
         """
@@ -297,7 +297,7 @@ class MongoNuodb(MongoDb):
         """
         Commit the transaction
         """
-	self.c.execute("commit")
+        self.c.execute("commit")
 
     def logout(self):
         """

@@ -11,25 +11,25 @@ VERBOSE=1
 #todo: refactor as a field or a function
 #DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = True #The default is True
 import os
-DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = os.getenv('MONGOAPI2SQL_DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS', "1")
-DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = int(DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS)
+DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = os.getenv('MONGOAPI2SQL_DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS', "1")
+DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = int(DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS)
 if VERBOSE:
-    if DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS:
-        print "DISABLED "+str(DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS)
+    if DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS:
+        print "DISABLED "+str(DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS)
     else:
-        print "ENABLED "+str(DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS)
+        print "ENABLED "+str(DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS)
 
 
 
 
-#DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = True
+#DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = True
 import os
-DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = os.getenv('MONGOAPI2SQL_DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS', True)
+DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = os.getenv('MONGOAPI2SQL_DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS', True)
 #todo: refactor as a field or a function
 
 class MongoCollection(MongoVars, MongoMatch):
     IDFIELD="id"
-    
+
     def __init__(self, key, db, collection=None,
                  parent=None, query=[], max=None):
         """
@@ -45,8 +45,8 @@ class MongoCollection(MongoVars, MongoMatch):
         self._index_cache = {}
 
     def __iter__(self):
-	if self.collection == []:
-	    raise StopIteration	    
+        if self.collection == []:
+            raise StopIteration
         for i in self.collection:
             yield i
 
@@ -67,9 +67,9 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Return index of collection
         """
-	if self.collection == []:
-	    return None
-	return self.collection[key]
+        if self.collection == []:
+            return None
+        return self.collection[key]
 
     def _transaction(f):
         """
@@ -100,14 +100,14 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Get a list of documents matching filters
         """
-	for k in filters.keys():
-	    if "." in k:
-		filters[k.replace(".", "__")] = filters[k]
-		del filters[k]
+        for k in filters.keys():
+            if "." in k:
+                filters[k.replace(".", "__")] = filters[k]
+                del filters[k]
 
         filters = self._restruct_object(filters)
         filters = MongoMatch.match_object(filters)
-	self._cur_query = list(self._query)
+        self._cur_query = list(self._query)
         self._cur_query.append(filters + order)
         return self._db.select(self.name, self._cur_query, limit)
 
@@ -117,25 +117,25 @@ class MongoCollection(MongoVars, MongoMatch):
         Create a collection if it does not exist
         Add missing fields to the collection
         """
-	objects = [self._restruct_object(object) for object in objects]
-	d = {}
+        objects = [self._restruct_object(object) for object in objects]
+        d = {}
         if objects is not None:
             for object in objects:
                 for key, val in object.items():
                     if key != "$set" and key != "$push" \
                     and key != "$pull" and key != "$inc":
-			if type(val) != dict:
+                        if type(val) != dict:
                             d[prefix + key] = type(val).__name__
-			else:
-			    d[prefix + key] = "str"
+                        else:
+                            d[prefix + key] = "str"
                     else:
                         for k, v in val.items():
-			    d[prefix + k] = type(v).__name__
-                            
+                            d[prefix + k] = type(v).__name__
+
         if self.collection is None:
-            if not DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS:
+            if not DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS:
                 self._db.create_collection(self.name, d)
-        if not DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS:
+        if not DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS:
             self._db.add_fields(self.name, d)
         return None
 
@@ -199,10 +199,10 @@ class MongoCollection(MongoVars, MongoMatch):
         Insert new objects in the current collections and return their ids
         """
         ids = []
-	objects = filter(lambda obj: obj != {}, objects)
-	for obj in objects:
+        objects = filter(lambda obj: obj != {}, objects)
+        for obj in objects:
             obj = self._restruct_object(obj)
-	    ids.append(self._db.insert_document(
+            ids.append(self._db.insert_document(
                 self.name, obj.keys(), obj.values()))
         self._clear_parent()
         return ids
@@ -220,7 +220,7 @@ class MongoCollection(MongoVars, MongoMatch):
     def _restruct_object(self, object, prefix=""):
         """
         Return a simple restructured dict
-        {a: {b:42, c:"42"}} --> {a__b: 42, a__c:"42}
+        {a: {b:42, c:"42"}} --> {a__b: 42, a__c:"42"}
         """
         if type(object) != dict:
             return object
@@ -235,7 +235,7 @@ class MongoCollection(MongoVars, MongoMatch):
                     d.update(self._restruct_object(v, prefix + k + self.SEP))
                 #elif t is list or t is tuple:
                 #    d[prefix + k] = json.dumps(v)
-	        else:
+                else:
                     d[prefix + k] = v
         return d
 
@@ -285,7 +285,7 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         Update documents by object all matching ids
         """
-	object = self._restruct_object(object)
+        object = self._restruct_object(object)
         self._create_collection([object])
         return self._db.update_by_ids(self.name, object.keys(), object.values(), ids)
 
@@ -299,7 +299,7 @@ class MongoCollection(MongoVars, MongoMatch):
             return []
         if (MongoCollection.IDFIELD.lower() in object or MongoCollection.IDFIELD.upper() in object) and (limit > 1 or limit is None):
             raise MongoError("Multiple documents with the same_id, error")
-	object = self._restruct_object(object)
+        object = self._restruct_object(object)
         documents = self._matching_document(limit, rules)
         if documents != []:
             ids = self._get_documents_ids(documents)
@@ -405,12 +405,15 @@ class MongoCollection(MongoVars, MongoMatch):
         Find and modify a single document, update or remove must be set
         full_response not yet implemented
         """
+
         d = {1: "ASC", -1: "DESC"}
         if sort != "":
             s_list = []
             for k, v in sort.items():
                 s_list.append("%s %s" % (k, d[v]))
             sort = " order by %s" % ", ".join(s_list)
+
+        self._db.begin_transaction()
         documents = self._matching_document(limit=1, filters=query, order=sort)
         if documents != []:
             if remove is True:
@@ -421,11 +424,11 @@ class MongoCollection(MongoVars, MongoMatch):
                 res = self._update(update, self._get_documents_ids(documents))
             if new is False:
                 res = documents[0]
-            return res
         else:
             if upsert is True:
                 # FIXME: check self_insert
-                return self._insert([update])
+                res= self._insert([update])
             if new is False:
-                return None
-            return update
+                res= None
+        self._db.commit_tranaction()
+        return res

@@ -8,9 +8,9 @@ class MongoMatch(object):
         Convert a dict of rules to its matching string
         """
         if rules == {}:
-            return ""          
+            return ""
         r = " and ".join(MongoMatch._convert_op(rules))
-	return r
+        return r
 
     @staticmethod
     def _convert_op(rules):
@@ -24,9 +24,9 @@ class MongoMatch(object):
             if k[0] == "$":
                 res.append(MongoMatch._operators[k](v))
             elif type(v) == dict:
-                    res.append(MongoMatch._operators[v.keys()[0]](k, v.values()[0]))
+                res.append(MongoMatch._operators[v.keys()[0]](k, v.values()[0]))
             #if type(v) in [list, tuple] :
-            #        res.append(MongoMatch._operators[v.keys()[0]](v))                    
+            #        res.append(MongoMatch._operators[v.keys()[0]](v))
             elif type(v) == str:
                 res.append("(%s like '%s')" % (k, v))
             else:
