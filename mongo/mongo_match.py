@@ -8,7 +8,7 @@ class MongoMatch(object):
         Convert a dict of rules to its matching string
         """
         if rules == {}:
-            return ""
+            return ""          
         r = " and ".join(MongoMatch._convert_op(rules))
 	return r
 
@@ -17,13 +17,16 @@ class MongoMatch(object):
         """
         Convert operators, and return them in a list
         """
+        import sys
+        sys.stderr.write("rules:"+repr(rules)+"\n")
         res = []
         for k, v in rules.items():
             if k[0] == "$":
                 res.append(MongoMatch._operators[k](v))
-            if type(v) == dict:
+            elif type(v) == dict:
                     res.append(MongoMatch._operators[v.keys()[0]](k, v.values()[0]))
-
+            #if type(v) in [list, tuple] :
+            #        res.append(MongoMatch._operators[v.keys()[0]](v))                    
             elif type(v) == str:
                 res.append("(%s like '%s')" % (k, v))
             else:

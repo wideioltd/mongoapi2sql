@@ -210,8 +210,8 @@ class MongoCollection(MongoVars, MongoMatch):
                 t = type(v)
                 if t is dict and len(v) != 0 and "$" not in k and "$" not in v.keys()[0]:
                     d.update(self._restruct_object(v, prefix + k + self.SEP))
-                elif t is list or t is tuple:
-                    d[prefix + k] = json.dumps(v)
+                #elif t is list or t is tuple:
+                #    d[prefix + k] = json.dumps(v)
 	        else:
                     d[prefix + k] = v
         return d
