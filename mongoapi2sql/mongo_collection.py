@@ -6,9 +6,30 @@ from functools import wraps
 from time import time
 import json
 
+VERBOSE=1
+
+#todo: refactor as a field or a function
+#DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = True #The default is True
+import os
+DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = os.getenv('MONGOAPI2SQL_DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS', "1")
+DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = int(DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS)
+if VERBOSE:
+    if DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS:
+        print "DISABLED "+str(DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS)
+    else:
+        print "ENABLED "+str(DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS)
+
+
+
+
+#DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = True
+import os
+DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = os.getenv('MONGOAPI2SQL_DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS', True)
+#todo: refactor as a field or a function
 
 class MongoCollection(MongoVars, MongoMatch):
     IDFIELD="id"
+    
     def __init__(self, key, db, collection=None,
                  parent=None, query=[], max=None):
         """
@@ -52,7 +73,7 @@ class MongoCollection(MongoVars, MongoMatch):
 
     def _transaction(f):
         """
-        Start end end a transaction if everything went well
+        Start and end a transaction if everything went well
         """
         @wraps(f)
         def transaction(*args, **kwargs):
@@ -112,8 +133,10 @@ class MongoCollection(MongoVars, MongoMatch):
 			    d[prefix + k] = type(v).__name__
                             
         if self.collection is None:
-            self._db.create_collection(self.name, d)
-        self._db.add_fields(self.name, d)
+            if not DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS:
+                self._db.create_collection(self.name, d)
+        if not DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS:
+            self._db.add_fields(self.name, d)
         return None
 
     def _get_documents_ids(self, documents):
