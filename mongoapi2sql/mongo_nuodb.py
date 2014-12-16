@@ -6,6 +6,8 @@ from mongo_db import MongoDb
 
 #MongoNuodb.IDFIELD="id" #to
 
+JAR_ENABLED=False 
+
 class MongoNuodb(MongoDb):
     # types for type not existing in nuodb
     #IDFIELD="_id" #default
