@@ -23,7 +23,7 @@ class MongoNuodb(MongoDb):
         -1: "DESC",
     }
 
-    _jar_path = "/home/ak/mongo.jar"
+    _jar_path = "mongoapi2sql.jar"
 
     def __init__(self):
         """
@@ -212,7 +212,10 @@ class MongoNuodb(MongoDb):
             if "$set" == f:
                 self.update_by_ids(name, v.keys(), v.values(), ids)
             elif "$" in f:
+              if JAR_ENABLED:
                 self._call_cmd(name, f, v, ids)
+              else:
+                raise Exception, "JSON operation are not supported in the absence of the JAR module"
             elif t != int and t != float:
                 s.append("%s='%s'" % (f, str(v).replace("'", "\"")))
             else:
