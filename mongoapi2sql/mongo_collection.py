@@ -430,5 +430,5 @@ class MongoCollection(MongoVars, MongoMatch):
                 res= self._insert([update])
             if new is False:
                 res= None
-        self._db.commit_tranaction()
+        self._db.commit_transaction()
         return res
