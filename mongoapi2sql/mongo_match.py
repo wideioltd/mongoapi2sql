@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+VERBOSE = 0
 
 class MongoMatch(object):
     @staticmethod
@@ -18,7 +18,8 @@ class MongoMatch(object):
         Convert operators, and return them in a list
         """
         import sys
-        sys.stderr.write("rules:"+repr(rules)+"\n")
+        if VERBOSE:
+            sys.stderr.write("rules:"+repr(rules)+"\n")
         res = []
         for k, v in rules.items():
             if k[0] == "$":

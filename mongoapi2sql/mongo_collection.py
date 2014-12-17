@@ -6,10 +6,9 @@ from functools import wraps
 from time import time
 import json
 
-VERBOSE=1
+VERBOSE=0
 
 #todo: refactor as a field or a function
-#DIABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = True #The default is True
 import os
 DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = os.getenv('MONGOAPI2SQL_DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS', "1")
 DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = int(DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS)
@@ -19,13 +18,6 @@ if VERBOSE:
     else:
         print "ENABLED "+str(DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS)
 
-
-
-
-#DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = True
-import os
-DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS = os.getenv('MONGOAPI2SQL_DISABLE_AUTOMATIC_SCHEMA_MODIFICATIONS', True)
-#todo: refactor as a field or a function
 
 class MongoCollection(MongoVars, MongoMatch):
     IDFIELD="id"
