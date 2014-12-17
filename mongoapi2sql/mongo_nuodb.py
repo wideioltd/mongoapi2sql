@@ -217,7 +217,7 @@ class MongoNuodb(MongoDb):
               if JAR_ENABLED:
                 self._call_cmd(name, f, v, ids)
               else:
-                raise Exception, "JSON operation are not supported in the absence of the JAR module"
+                raise Exception, "JSON operation "+f+" is not supported in the absence of the JAR module"
             elif t != int and t != float:
                 s.append("%s='%s'" % (f, str(v).replace("'", "\"")))
             else:
