@@ -6,7 +6,7 @@ from functools import wraps
 from time import time
 import json
 
-VERBOSE=1
+VERBOSE=0
 
 #todo: refactor as a field or a function
 import os
