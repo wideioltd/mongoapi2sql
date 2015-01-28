@@ -222,12 +222,16 @@ class MongoNuodb(MongoDb):
                 s.append("%s='%s'" % (f, str(v).replace("'", "\"")))
             else:
                 s.append("%s=%s" % (f, v))
-        if len(s) != 0:
-            ids = [(id, ) for id in ids]
-            #was: "... where _id=?"
-            ss=("update %s set %s where "+MongoNuodb.IDFIELD+"=?")%(name, ", ".join(s))
-            #print(ss)
-            self.c.executemany(ss, ids)
+        if len(ids) != 0:
+            if len(ids)==1:
+               ss=("update %s set %s where "+MongoNuodb.IDFIELD+"=?")%(name, ", ".join(s))
+               self.c.execute(ss, (ids[0],))
+            else: 
+              ids = [(id, ) for id in ids]
+              #was: "... where _id=?"
+              ss=("update %s set %s where "+MongoNuodb.IDFIELD+"=?")%(name, ", ".join(s))
+              #print(ss)
+              self.c.executemany(ss, ids)
 
     def delete_documents(self, name, ids):
         """
