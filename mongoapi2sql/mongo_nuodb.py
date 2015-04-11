@@ -150,8 +150,8 @@ class MongoNuodb(MongoDb):
         n = ""
         for a in s:
             t = type(a)
-            if a is None and opt == 1:
-                n += "'null', "
+            if a == None:
+                n += "null, "
             elif t in types or opt == 0:
                 n += "%s, " % a
             else:
@@ -231,7 +231,9 @@ class MongoNuodb(MongoDb):
               #was: "... where _id=?"
               ss=("update %s set %s where "+MongoNuodb.IDFIELD+"=?")%(name, ", ".join(s))
               #print(ss)
-              self.c.executemany(ss, ids)
+              #self.c.executemany(ss, ids)
+              for cid in ids:
+                  self.c.execute(ss, cid)
 
     def delete_documents(self, name, ids):
         """
@@ -239,8 +241,12 @@ class MongoNuodb(MongoDb):
         with matching ids <ids>
         """
         ids = [(id, ) for id in ids]
-        self.c.executemany(("delete from %s where "+MongoNuodb.IDFIELD+"=?") % name, ids)
-
+        print ids
+        #self.c.executemany(("delete from %s where "+MongoNuodb.IDFIELD+"=?") % name, ids)
+        ss=(("delete from %s where "+MongoNuodb.IDFIELD+"=?") % name)
+        for cid in ids:
+                print (ss, (cid,))
+                self.c.execute(ss, cid)
     def add_fields(self, name, fields):
         """
         Add fields <fields> to the collection <name>
