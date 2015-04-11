@@ -309,7 +309,7 @@ class MongoCollection(MongoVars, MongoMatch):
         """
         return self._db.delete_documents(self.name, ids)
 
-    def remove(self, rules={}, limit=1):
+    def remove(self, rules={}, limit=10000):
         """
         Remove documents matching ids
         """
