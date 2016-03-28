@@ -28,16 +28,28 @@ class MongoSqlAlchemy(MongoDb):
         self.db = None
         self.c = None
 
-    def connect(self, db, host, user, password, options={"schema": "mongo-syntax"}):
+    def connect(self, url=None,engine=None, db=None, host=None, user=None, password=None, options={"schema": "mongo-syntax"}):
         """
         Connect yourself to your db
         """
-        engine = sqlalchemy.create_engine(
-            'mysql://{user}:{password}@{host}/{db}'.format(user=user, password=password, format=host, db=db))
+        if url is not None:
+            engine = sqlalchemy.create_engine(url)            
+        else:
+            if engine is None:
+                raise ValueError
+            if db is None:
+                raise ValueError            
+            if host is None:
+                raise ValueError
+            if user is None:
+                raise ValueError            
+            if password is None:
+                raise ValueError
+            engine = sqlalchemy.create_engine('{engine}://{user}:{password}@{host}/{db}'.format(engine=engine,user=user, password=password, format=host, db=db))
 
         self.db = engine
         self.c = engine.connect()
-        self.c.execute("SET AUTOCOMMIT ON;")
+        #self.c.execute("SET AUTOCOMMIT ON;")
         return self.c
 
     def close(self):
