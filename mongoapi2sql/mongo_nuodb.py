@@ -1,5 +1,10 @@
 #!/usr/bin/python2
-import pynuodb
+try:
+  import pynuodb
+except:
+  import mock
+  pynuodb=mock.Mock()
+
 from uuid import uuid4 as uuid
 
 from mongo_db import MongoDb
